@@ -15,9 +15,9 @@
         Title="ConfigTool" Height="500" Width="600">
     <Grid Background="#FFEFEB">
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="4*"/>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
@@ -34,6 +34,7 @@
                    FontSize="50"
                    FontFamily="Consolas"
                    BorderThickness="0"
+                   Margin="0,20,0,0"
                    ToolTip="Reset values to defaults!"
                    />
             <TextBlock Grid.Column="1"
@@ -42,6 +43,7 @@
                        FontFamily="Consolas"
                        FontWeight="Bold"
                        Text="CONFIG TOOL"
+                       Margin="0,20,0,0"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Foreground="#995C68"/>
@@ -54,6 +56,7 @@
                     FontSize="50"
                     FontFamily="Consolas"
                     BorderThickness="0"
+                    Margin="0,20,0,0"
                     ToolTip="Add Configuration!"
                     />
 
@@ -63,8 +66,7 @@
                   Name="ConfigurationsDisplay"
                   Padding="10"
                   Background="#B5838D"
-                  Height="300"
-                  Width="550"
+                  Margin="20"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
                   FontSize="15"
@@ -91,6 +93,7 @@
                     FontWeight="Bold"
                     FontFamily="Consolas"
                     BorderThickness="0"
+                    Margin="0,0,0,20"
                     ToolTip="Close config tool"
                     />
             <Button Grid.Column="2"
@@ -106,6 +109,7 @@
                     HorizontalAlignment="Left"
                     FontFamily="Consolas"
                     BorderThickness="3"
+                    Margin="0,0,0,20"
                     ToolTip="Delete Selected Row"
                     IsEnabled="False"
                     />
@@ -122,12 +126,9 @@
                     FontWeight="Bold"
                     FontFamily="Consolas"
                     BorderThickness="0"
+                    Margin="0,0,0,20"
                     ToolTip="Save Configurations"
                     />
-            
         </Grid>
-        
-        
-
     </Grid>
 </Window>
