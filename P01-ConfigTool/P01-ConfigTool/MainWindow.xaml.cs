@@ -1,7 +1,7 @@
 ﻿//------------------------------------------------------------------------------
 // FILE          : MainWindow.xaml.cs
 // PROJECT       : Project ManufacturingP01 - ConfigTool (Milestone 1)
-// PROGRAMMER    : Bibi Murwared
+// PROGRAMMER    : Bibi Murwared, Julia Jakob
 // FIRST VERSION : 2026-03-11
 // DESCRIPTION   : Code-behind for the configuration tool. Uses ADO.NET
 //                 to load, add, edit, delete and reset configuration values
@@ -11,6 +11,7 @@
 //https://learn.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlcommand.executescalar?view=netframework-4.8.1
 using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Text;
@@ -84,6 +85,12 @@ namespace P01_ConfigTool
             }
             // bind the collection to the datagrid
             ConfigurationsDisplay.ItemsSource = configurations;
+
+            // make it so that configs are ordered by ID
+            var view = (ListCollectionView)CollectionViewSource.GetDefaultView(configurations);
+            view.SortDescriptions.Clear();
+            view.SortDescriptions.Add(new SortDescription("ConfigID", ListSortDirection.Ascending));
+
             DeleteButton.IsEnabled = false;  // disable delete button until a row is selected
         }
       
@@ -107,7 +114,7 @@ namespace P01_ConfigTool
         private void ResetToDefaults_Click(object sender, RoutedEventArgs e)
         {
             // ask the user to confirm the reset
-            MessageBoxResult result = MessageBox.Show("Reset all configuration values to defaults?","Confirm reset", MessageBoxButton.YesNo,MessageBoxImage.Warning);
+            MessageBoxResult result = MessageBox.Show("Reset all configuration values to defaults?\n (WARNING: This will DELETE any non-default created rows!!)","Confirm reset", MessageBoxButton.YesNo,MessageBoxImage.Warning);
 
             if (result != MessageBoxResult.Yes)
             {
@@ -159,7 +166,7 @@ namespace P01_ConfigTool
         /// <param name="sender">the close button</param>
         /// <param name="e">event data for the click</param>
         private void Close_Click(object sender, RoutedEventArgs e)
-        {   // any validation needed ?
+        {  
             Close();
 
         }
