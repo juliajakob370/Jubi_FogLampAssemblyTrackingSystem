@@ -4,8 +4,7 @@
     PROGRAMMER    : Julia Jakob
     FIRST VERSION : 2026-03-10
     DESCRIPTION   : Main window XAML for the config tool
-    UPDATED BY    : Bibi Murwared
-    Description   : added explicit column definitions (ID,Name, Value, Type, description) so
+    UPDATED BY    : Bibi Murwared (2026-03-11): added explicit column definitions (ID,Name, Value, Type, description) so
                     configuration settings are clearly displayed and can be edited if wanted.
     -->
     <Window x:Class="P01_ConfigTool.MainWindow"
@@ -66,30 +65,48 @@
         </Grid>
 
         <DataGrid Grid.Row="1"
-          Name="ConfigurationsDisplay"
-          AutoGenerateColumns="False"
-          CanUserAddRows="False"
-          SelectionMode="Single"
-          SelectionChanged="ConfigurationsDisplay_SelectionChanged"
-          Padding="10"
-          Background="#B5838D"
-          Height="300"
-          Width="550"
-          ScrollViewer.VerticalScrollBarVisibility="Auto"
-          ScrollViewer.HorizontalScrollBarVisibility="Auto"
-          FontSize="15"
-          FontFamily="Lucida Console"
-          BorderThickness="0">
+   Name="ConfigurationsDisplay"
+   AutoGenerateColumns="False"
+   CanUserAddRows="False"
+   SelectionMode="Single"
+   SelectionChanged="ConfigurationsDisplay_SelectionChanged"
+   Padding="10"
+   Background="#B5838D"
+   Margin="20"
+   ScrollViewer.VerticalScrollBarVisibility="Auto"
+   ScrollViewer.HorizontalScrollBarVisibility="Auto"
+   FontSize="12"
+   FontFamily="Lucida Console"
+   BorderThickness="0">
+
+            <!-- Add this minimal wrapping style -->
+            <DataGrid.Resources>
+                <Style x:Key="WrappingTextBlock" TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+            </DataGrid.Resources>
 
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding ConfigID}" Width="50"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding ConfigName}" Width="*"/>
+                <DataGridTextColumn Header="ID" Binding="{Binding ConfigID}" Width="50" SortDirection="Ascending"/>
+
+                <DataGridTextColumn Header="Name" Binding="{Binding ConfigName}" Width="1*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource WrappingTextBlock}"/>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
                 <DataGridTextColumn Header="Value" Binding="{Binding ConfigValue}" Width="*"/>
                 <DataGridTextColumn Header="Type" Binding="{Binding DataType}" Width="*"/>
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*"/>
+
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource WrappingTextBlock}"/>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        
+
+
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
