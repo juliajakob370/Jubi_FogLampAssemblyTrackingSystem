@@ -19,15 +19,46 @@
             <RowDefinition Height="4*"/>
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0"
-                   Name="TitleText"
-                   FontSize="30"
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0"
+                   Name="ResetToDefaultsButton"
+                   Click="ResetToDefaults_Click"
+                   Background="Transparent"
+                   Foreground="#995C68"
+                   Content="🔄️"
+                   FontSize="50"
                    FontFamily="Consolas"
-                   FontWeight="Bold"
-                   Text="CONFIG TOOL"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#995C68"/>
+                   BorderThickness="0"
+                   ToolTip="Reset values to defaults!"
+                   />
+            <TextBlock Grid.Column="1"
+                       Name="TitleText"
+                       FontSize="30"
+                       FontFamily="Consolas"
+                       FontWeight="Bold"
+                       Text="CONFIG TOOL"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="#995C68"/>
+            <Button Grid.Column="2"
+                    Name="AddButton"
+                    Click="AddConfiguration_Click"
+                    Background="Transparent"
+                    Foreground="#995C68"
+                    Content="✚"
+                    FontSize="50"
+                    FontFamily="Consolas"
+                    BorderThickness="0"
+                    ToolTip="Add Configuration!"
+                    />
+
+        </Grid>
+       
         <DataGrid Grid.Row="1"
                   Name="ConfigurationsDisplay"
                   Padding="10"
@@ -35,9 +66,12 @@
                   Height="300"
                   Width="550"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
                   FontSize="15"
                   FontFamily="Lucida Console"
+                  CanUserAddRows="False"
+                  RowValidationErrorTemplate="{x:Null}"
             />
-        
+
     </Grid>
 </Window>

@@ -20,5 +20,15 @@ namespace P01_ConfigTool
         {
             InitializeComponent();
         }
+
+        private void ResetToDefaults_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void AddConfiguration_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
