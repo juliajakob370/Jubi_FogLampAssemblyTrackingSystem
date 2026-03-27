@@ -19,7 +19,7 @@
             <RowDefinition Height="Auto"/>
             <!-- 1 Stopwatch Row -->
             <RowDefinition Height="Auto"/>
-            <!-- 2 Employee Row -->
+            <!-- 2 Worker Row -->
             <RowDefinition Height="Auto"/>
             <!-- 3 Workstation Row -->
             <RowDefinition Height="Auto"/>
@@ -66,18 +66,18 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock  Grid.Column="0"
-                        Name="EmployeeSelectLabel"
+                        Name="WorkerSelectLabel"
                         FontSize="20"
                         FontFamily="Consolas"
                         FontWeight="Bold"
-                        Text="Select Employee:"
+                        Text="Select Worker:"
                         Margin="0,40,20,0"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
                         Foreground="#6D6875"/>  
 
             <ComboBox   Grid.Column="1"
-                        Name="EmployeeSelect"
+                        Name="WorkerSelect"
                         Height="20"
                         Width="200"
                         Margin="20,40,0,0"
