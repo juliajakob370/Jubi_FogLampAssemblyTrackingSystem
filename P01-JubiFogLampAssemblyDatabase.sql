@@ -4,32 +4,19 @@
  * PROGRAMMER    : Julia Jakob, Bibi Murwared Enayat Zada
  * DESCRIPTION   : This script creates the Jubi Foglamp Assembly Database and everything needed for the simulations
  */
-
---DROP DATABASE Jubi; -- drop database if it already exists 
-
--- -- == CREATE THE DATABASE == --
--- CREATE DATABASE Jubi; -- temporary name for our project database
--- GO
-
--- -- == USE THE DATABASE == --
--- USE Jubi;
--- GO
-
-USE master;
-GO
-
-IF DB_ID('Jubi') IS NOT NULL
-BEGIN
-    ALTER DATABASE Jubi SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+-- == DROP DATABASE IF IT EXISTS == --
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'Jubi')
     DROP DATABASE Jubi;
-END
 GO
 
+-- == CREATE THE DATABASE == --
 CREATE DATABASE Jubi;
 GO
 
+-- == USE THE JUBI DATABASE == --
 USE Jubi;
 GO
+	
  -------------------------------------------
  -- == CREATE TABLE == ---------------------
  -------------------------------------------
