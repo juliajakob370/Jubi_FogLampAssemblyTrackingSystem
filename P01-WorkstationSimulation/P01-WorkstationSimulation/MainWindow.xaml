@@ -102,6 +102,7 @@
 
             <ComboBox   Grid.Column="1"
                         Name="WorkstationSelect"
+                        SelectionChanged="WorkstationSelect_SelectionChanged"
                         Height="20"
                         Width="200"
                         Margin="20,30,0,0"
