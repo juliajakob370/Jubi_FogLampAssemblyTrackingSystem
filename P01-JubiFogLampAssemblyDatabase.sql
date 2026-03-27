@@ -1,8 +1,8 @@
 /*
- * FILE          : P01_ConfigTableCreation&InitialValues
- * PROJECT       : P01 - Configuration Table Creation
- * PROGRAMMER    : Julia Jakob
- * DESCRIPTION   : This script creates the Configuration Table with all of it's properties
+ * FILE          : P01-JubiFogLampAssemblyDatabase.sql
+ * PROJECT       : P01 - Manufacturing
+ * PROGRAMMER    : Julia Jakob, Bibi Murwared Enayat Zada
+ * DESCRIPTION   : This script creates the Jubi Foglamp Assembly Database and everything needed for the simulations
  */
 
 --DROP DATABASE Jubi; -- drop database if it already exists 
