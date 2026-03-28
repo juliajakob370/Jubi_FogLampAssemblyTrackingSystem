@@ -13,7 +13,6 @@
 using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.Configuration;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -68,7 +67,7 @@ namespace P01_WorkstationSimulation
         private bool isSimulating = false; // check to see if the program running a simulation
         private int selectedStationID; // selected station ID from UI
         private int selectedWorkerID; // selected worker ID from UI
-        private Dictionary<int, string> workerSkillNames = new();  // create a dictionary to map worker ID's to the name of their skill levels
+       // private Dictionary<int, string> workerSkillNames = new();  // create a dictionary to map worker ID's to the name of their skill levels
         private DispatcherTimer simulationTimer; // timer for simulation
         private Workstation? selectedWorkstation; // store selected work station as a Workstation object
         private Worker? selectedWorker; // store selected worker as a worker object
@@ -116,8 +115,9 @@ namespace P01_WorkstationSimulation
             {
                 await connection.OpenAsync(); // access the db asynchronously
 
-                string query = @"SELECT WorkerID, WorkerName FROM Worker ORDER BY WorkerName;"; // make the query
-
+                string query = @" SELECT w.WorkerID, w.WorkerName, w.SkillLevelID, s.SkillLevelName, s.Speed, s.DefectRate, w.StationID FROM Worker w
+                                      INNER JOIN Skills s ON w.SkillLevelID = s.SkillLevelID
+                                      ORDER BY w.WorkerName;";
                 using (SqlCommand cmd = new SqlCommand(query, connection))
                 using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                 {
@@ -126,8 +126,13 @@ namespace P01_WorkstationSimulation
                     {
                         workers.Add(new Worker
                         {
-                            WorkerID = reader.GetInt32(0),
-                            WorkerName = reader.GetString(1)
+                            WorkerID = reader.GetInt32(reader.GetOrdinal("WorkerID")),
+                            WorkerName = reader.GetString(reader.GetOrdinal("WorkerName")),
+                            SkillLevelID = reader.GetInt32(reader.GetOrdinal("SkillLevelID")),
+                            SkillLevelName = reader.GetString(reader.GetOrdinal("SkillLevelName")),
+                            Speed = reader.GetDecimal(reader.GetOrdinal("Speed")),
+                            DefectRate = reader.GetDecimal(reader.GetOrdinal("DefectRate")),
+                            StationID = reader.GetInt32(reader.GetOrdinal("StationID"))
                         });
                     }
                 }
@@ -266,15 +271,28 @@ namespace P01_WorkstationSimulation
         /// </summary>
         /// <param name="key">key to look up in the dictionary of config values</param>
         /// <returns>parsed decimal or 0</returns>
-        private decimal GetConfigDecimal(string key)
+        private decimal GetConfigDecimal(string configName)
         {
-            if (configValues.ContainsKey(key))
+            string connectionString = ConfigurationManager.ConnectionStrings["JubiConnection"].ConnectionString;
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                return decimal.Parse(configValues[key]);
-            }
-            else
-            {
-                return 0m; // 0m for decimal
+                conn.Open();
+
+                string query = "SELECT ConfigValue FROM Configuration WHERE ConfigName = @ConfigName";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ConfigName", configName);
+                    object result = cmd.ExecuteScalar();
+
+                    if (result == null)
+                    {
+                        throw new Exception($"Configuration value '{configName}' not found.");
+                    }
+
+                    return Convert.ToDecimal(result);
+                }
             }
         }
 
@@ -282,7 +300,7 @@ namespace P01_WorkstationSimulation
         /// Get each of the worker's skill level names and put them in a disctionary for easier access later
         /// </summary>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task LoadWorkerSkillsAsync()
+       /* private async Task LoadWorkerSkillsAsync()
         {
             workerSkillNames.Clear(); // clear the dictionary to start fresh
 
@@ -310,13 +328,14 @@ namespace P01_WorkstationSimulation
 
             Logger.Log($"Loaded skill for Worker {selectedWorkerID}: {workerSkillNames[selectedWorkerID]}");
         }
+       */
 
         /// <summary>
         /// Used to check if the start button should be enabled - user needs to select values first
         /// </summary>
         private void CheckStartButton()
         {
-            StartButton.IsEnabled = 
+            StartButton.IsEnabled =
                 WorkstationSelect.SelectedValue != null && WorkerSelect.SelectedValue != null;
         }
 
@@ -331,36 +350,35 @@ namespace P01_WorkstationSimulation
         /// <param name="e">The event data associated with the Click event.</param>
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
-            Workstation selectedWorkstation = WorkstationSelect.SelectedItem as Workstation;
-            Worker selectedWorker = WorkerSelect.SelectedItem as Worker;
+            selectedWorkstation = WorkstationSelect.SelectedItem as Workstation;
+            selectedWorker = WorkerSelect.SelectedItem as Worker;
 
-            // set the IDs
+            if (selectedWorkstation == null || selectedWorker == null)
+            {
+                MessageBox.Show("Please select a worker and a workstation before starting.");
+                return;
+            }
+
             selectedStationID = selectedWorkstation.StationID;
             selectedWorkerID = selectedWorker.WorkerID;
 
-            // Initialize the logs
             Logger.Initialize(selectedWorkstation.StationName);
 
-            await LoadWorkerSkillsAsync();  // Load skill level speed for worker
+            // await LoadWorkerSkillsAsync();
 
-            // Log loaded speed
-            Logger.Log($"Worker skills loaded - {selectedWorker.WorkerName} ({workerSkillNames[selectedWorkerID]}) | Speed ready for simulation");
+            Logger.Log($"Worker selected - {selectedWorker.WorkerName} ({selectedWorker.SkillLevelName}) | Speed: {selectedWorker.Speed} | DefectRate: {selectedWorker.DefectRate}");
+            isSimulating = true;
+            configRefreshTimer?.Stop();
 
-            isSimulating = true; // set that the simulation has started
-            configRefreshTimer?.Stop(); // stop checking for config updates
-
-            // log that the simulation has started with the selected worker and workstation
             Logger.Log($"Simulation STARTED - Worker: {selectedWorker.WorkerName}, Station: {selectedWorkstation.StationName}");
 
             StartSimulationLoop();
 
-            // UI disabling / enabling logic
             StopButton.IsEnabled = true;
             StartButton.IsEnabled = false;
             WorkerSelect.IsEnabled = false;
             WorkstationSelect.IsEnabled = false;
         }
-
         /// <summary>
         /// Main simulation loop with timescale
         /// </summary>
@@ -422,8 +440,7 @@ namespace P01_WorkstationSimulation
             }
 
             // Build lamp (consumes parts)
-            string barcode = $"LAMP-S{selectedStationID}-{DateTime.Now:HHmmss}"; // build a barcode
-            await RunLampCycleAsync(barcode); // run the lamp cycle
+            await RunLampCycleAsync();
         }
 
         /// <summary>
@@ -463,36 +480,43 @@ namespace P01_WorkstationSimulation
         /// </summary>
         /// <param name="barcode">The unique barcode identifying the product for which the lamp cycle is to be run. Cannot be null.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task RunLampCycleAsync(string barcode)
+        private async Task RunLampCycleAsync()
         {
-            decimal baseTime = GetConfigDecimal("BaseTime");
-            string skillName = workerSkillNames[selectedWorkerID];
-            decimal speedReadIn = GetConfigDecimal($"{skillName}.TimeVariationPercentage");
-            decimal speed = speedReadIn / 100; // values are stored as percentages so convert to decimal to use
+            Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
+            Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
 
-            // Simple assembly time (no defects yet)
-            decimal assemblyTime = baseTime * speed;
+            if (selectedWorker == null || selectedStation == null)
+            {
+                MessageBox.Show("Please select a worker and workstation.");
+                return;
+            }
+
+            decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
+            bool isDefective = CalculateDefectResult(selectedWorker);
+            string barcode = GenerateBarcode(selectedStation.StationID);
 
             try
             {
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    await connection.OpenAsync(); // connect to db asynchronously
+                    await connection.OpenAsync();
 
                     using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
                     {
-                        // call stored procedure with parameters
                         cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@Barcode", barcode);
-                        cmd.Parameters.AddWithValue("@StationID", selectedStationID);
-                        cmd.Parameters.AddWithValue("@WorkerID", selectedWorkerID);
+                        cmd.Parameters.AddWithValue("@Barcode", GenerateBarcode(selectedStation.StationID));
+                        cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
+                        cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
+                        cmd.Parameters.AddWithValue("@TrayID", 1);
                         cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
-                        cmd.Parameters.AddWithValue("@IsDefective", 0);  // no defect logic yet so just have not defective for now!!!!!!! 
+                        cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
 
-                        await cmd.ExecuteNonQueryAsync(); // execute the query
+                        await cmd.ExecuteNonQueryAsync();
                     }
                 }
-                Logger.Log($"{barcode} | {assemblyTime:F1}s | Parts consumed");
+
+                Logger.Log($"{barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")} | Parts consumed");
             }
             catch (Exception ex)
             {
@@ -500,16 +524,48 @@ namespace P01_WorkstationSimulation
             }
         }
 
+        private string GenerateBarcode(int stationId)
+        {
+            return $"LAMP-S{stationId}-{DateTime.Now:yyyyMMddHHmmssfff}";
+        }
+        //------------------------------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Calculates the assembly time for the selected worker based on the base time
+        /// from the configuration table and the worker's speed multiplier.
+        /// </summary>
+        /// <param name="selectedWorker">The worker currently assigned to the simulation.</param>
+        /// <returns>The calculated assembly time in seconds.</returns>
+        private decimal CalculateAssemblyTime(Worker selectedWorker)
+        {
+            decimal baseTime = GetConfigDecimal("BaseTime");
+            return baseTime * selectedWorker.Speed;
+        }
+
+        /// <summary>
+        /// Determines whether the selected worker produces a defective product
+        /// by comparing a random roll against the worker's defect rate.
+        /// </summary>
+        /// <param name="selectedWorker">The worker currently assigned to the simulation.</param>
+        /// <returns>
+        /// True if the product is defective; otherwise, false.
+        /// </returns>
+        private bool CalculateDefectResult(Worker selectedWorker)
+        {
+            Random random = new Random();
+            double roll = random.NextDouble() * 100.0;
+            return roll < (double)selectedWorker.DefectRate;
+        }
         /// <summary>
         /// Gracefully stop simulation + resume config refresh
         /// </summary>
+        /// 
         private void StopSimulation()
         {
             simulationTimer?.Stop();
+            stopwatchTimer?.Stop();
             isSimulating = false;
-            StartConfigRefreshTimer();  // Resume config polling
+            StartConfigRefreshTimer();
 
-            // Re-enable UI
             Dispatcher.Invoke(() =>
             {
                 StartButton.IsEnabled = true;
@@ -520,11 +576,9 @@ namespace P01_WorkstationSimulation
 
             Logger.Log("Simulation STOPPED!");
         }
-
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
-            StartButton.IsEnabled = true;
-            StopButton.IsEnabled = false;
+            StopSimulation();
         }
 
         private void WorkstationSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
