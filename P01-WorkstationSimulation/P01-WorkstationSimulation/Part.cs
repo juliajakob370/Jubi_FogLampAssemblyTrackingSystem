@@ -17,12 +17,14 @@ namespace P01_WorkstationSimulation
     {
         public int PartID
         {
-            get; set;
+            get; 
+            set;
         }
 
         public string PartName
         {
-            get; set;
+            get; 
+            set;
         } = string.Empty; // default so that it stops warning about null
     }
 }

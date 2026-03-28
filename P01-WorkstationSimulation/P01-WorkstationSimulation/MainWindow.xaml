@@ -82,7 +82,11 @@
                         Height="20"
                         Width="200"
                         Margin="20,40,0,0"
-                        HorizontalAlignment="Left"/>
+                        HorizontalAlignment="Left"
+                        Background="#FFCDB2"
+                        Foreground="#6D6875"
+                        FontWeight="SemiBold"
+                        FontFamily="Consolas"/>
 
         </Grid>
         <Grid Grid.Row="3">
@@ -99,7 +103,8 @@
                         Margin="0,30,20,0"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
-                        Foreground="#6D6875"/>
+                        Foreground="#6D6875"
+                        />
 
             <ComboBox   Grid.Column="1"
                         Name="WorkstationSelect"
@@ -107,7 +112,11 @@
                         Height="20"
                         Width="200"
                         Margin="20,30,0,0"
-                        HorizontalAlignment="Left"/>
+                        HorizontalAlignment="Left"
+                        Background="#FFCDB2"
+                        Foreground="#6D6875"
+                        FontWeight="SemiBold"
+                        FontFamily="Consolas"/>
 
         </Grid>
         <Grid Grid.Row="4">
@@ -130,7 +139,8 @@
                     Margin="20,40,0,0"
                     HorizontalAlignment="Center"
                     Background="#ccd5ae"
-                    Foreground="#6d6875"/>
+                    Foreground="#6d6875"
+                    IsEnabled="False"/>
             
             <Button Grid.Column="1"
                     Name="StopButton"

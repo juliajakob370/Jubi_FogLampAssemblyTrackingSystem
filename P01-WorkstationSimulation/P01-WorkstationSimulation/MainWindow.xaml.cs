@@ -289,5 +289,10 @@ namespace P01_WorkstationSimulation
         {
             CheckStartButton();
         }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
 }
