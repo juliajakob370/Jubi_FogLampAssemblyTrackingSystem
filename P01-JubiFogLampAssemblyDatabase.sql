@@ -48,21 +48,13 @@ GO
  ('SimulationTimeScale', '1.0', 'decimal', 'Time scale for simulation'),
 
  -- Worker Time Configuration Values ----------------------------------------------
- ('BaseTime', '60.0','decimal','Base time for how fast it takes to assemble a completed fog lamp in seconds'),
- ('ExperiencedWorker.TimeVariationPercentage', '10.0','decimal','An experienced worker can assemble a completed fog lamp in the base time +/- this percentage'),
- ('NewEmployee.TimeVariationPercentage', '50.0','decimal','A new worker takes this percentage longer than the base time to complete a fog lamp'),
- ('SuperWorker.TimeVariationPercentage', '15.0','decimal','A super worker can complete a fog lamp in this percentage less time than the base time'),
-
- -- Worker Defect Rates -----------------------------------------------------------
- ('ExperiencedWorker.DefectRate', '0.5','decimal','A normal/experienced worker has this defect percentage'),
- ('NewEmployee.DefectRate', '0.85','decimal','A new worker has this defect percentage'),
- ('SuperWorker.DefectRate', '0.15','decimal','A super/ very experiencedworker has this defect percentage');
+ ('BaseTime', '60.0','decimal','Base time for how fast it takes to assemble a completed fog lamp in seconds');
 
 --------------------------------------------------------------------------------------
   --------------------------- == MILESTONE 2 == -----------------------------------
 --------------------------------------------------------------------------------------
 
-
+SELECT * FROM Configuration;
 -- =========================================================
 -- ASSEMBLY AREA
 -- =========================================================
@@ -350,7 +342,7 @@ VALUES
 (12, 'Empty', NULL),
 (12, 'Empty', NULL);
 
--- =========================================================
+/*-- =========================================================
 -- SAMPLE LAMP
 -- =========================================================
 INSERT INTO Lamps (Barcode, StationID, WorkerID, TrayID, IsDefective, AssemblyTime)
@@ -409,8 +401,8 @@ SELECT * FROM AssemblyComponent;
 SELECT * FROM QualityInspection;
 SELECT * FROM BinNotification;
 SELECT * FROM RunnerActivity;
-
---------------------------------------------------------------------------------------
+*/
+-------------------------------------------------------------------------------------
 ------------------------------ == STORED PROCEDURES == -------------------------------
 -- reusable database actions
 --------------------------------------------------------------------------------------
@@ -462,6 +454,7 @@ GO
 
 -- =========================================================
 -- PROCEDURE: Consume Parts From Bins
+-- DESCRIPTION: Reduces all part bins by 1 for one station and flags low stock
 -- =========================================================
 IF OBJECT_ID('dbo.sp_ConsumePartsFromBins', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_ConsumePartsFromBins;
@@ -472,6 +465,12 @@ CREATE PROCEDURE dbo.sp_ConsumePartsFromBins
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    DECLARE @LowStockThreshold INT;
+
+    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
+    FROM Configuration
+    WHERE ConfigName = 'LowStockThreshold';
 
     IF EXISTS
     (
@@ -486,7 +485,11 @@ BEGIN
     END
 
     UPDATE Bin
-    SET CurrentCount = CurrentCount - 1
+    SET CurrentCount = CurrentCount - 1,
+        NeedsRefill = CASE 
+                        WHEN CurrentCount - 1 <= @LowStockThreshold THEN 1
+                        ELSE 0
+                      END
     WHERE StationID = @StationID;
 END;
 GO
@@ -519,10 +522,13 @@ GO
 
 -- =========================================================
 -- PROCEDURE: Refill Bin
+-- DESCRIPTION: Refills a bin, clears refill flag, closes notifications, and logs runner activity
 -- =========================================================
 IF OBJECT_ID('dbo.sp_RefillBin', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RefillBin;
 GO
+
+
 
 CREATE PROCEDURE dbo.sp_RefillBin
     @BinID INT
@@ -553,11 +559,15 @@ BEGIN
         LastReplenishment = GETDATE()
     WHERE BinID = @BinID;
 
+    UPDATE BinNotification
+    SET Status = 'Closed'
+    WHERE BinID = @BinID
+      AND Status = 'Open';
+
     INSERT INTO RunnerActivity (BinID, ActionType, ActivityTime, OldCount, NewCount)
     VALUES (@BinID, 'Refill', GETDATE(), @OldCount, @NewCount);
 END;
 GO
-
 
 -- =========================================================
 -- PROCEDURE: Run Full Lamp Cycle
@@ -590,21 +600,7 @@ BEGIN
     SELECT @LampID, PartID, 1
     FROM Parts;
 
-    IF EXISTS
-    (
-        SELECT 1
-        FROM Bin
-        WHERE StationID = @StationID
-          AND CurrentCount < 1
-    )
-    BEGIN
-        RAISERROR('Not enough parts in one or more bins.', 16, 1);
-        RETURN;
-    END
-
-    UPDATE Bin
-    SET CurrentCount = CurrentCount - 1
-    WHERE StationID = @StationID;
+    EXEC dbo.sp_ConsumePartsFromBins @StationID = @StationID;
 
     INSERT INTO QualityInspection (LampID, InspectionTime, IsDefective, Notes)
     VALUES (@LampID, GETDATE(), @IsDefective, @Notes);
@@ -614,7 +610,6 @@ BEGIN
     WHERE LampID = @LampID;
 END;
 GO
-
 -- =========================================================
 -- PROCEDURE: Assign Worker To Station
 -- DESCRIPTION: Updates the station assigned to a worker
@@ -737,12 +732,130 @@ GO
 -- make the database react automatically when something changes
 --------------------------------------------------------------------------------------
 
+---- =========================================================
+---- TRIGGER: Low Stock Notification
+---- DESCRIPTION: Flags low stock bins and creates a notification
+---- =========================================================
+--IF OBJECT_ID('dbo.trg_LowStockNotification', 'TR') IS NOT NULL
+--    DROP TRIGGER dbo.trg_LowStockNotification;
+--GO
+
+--CREATE TRIGGER dbo.trg_LowStockNotification
+--ON Bin
+--AFTER UPDATE
+--AS
+--BEGIN
+--    SET NOCOUNT ON;
+
+--    DECLARE @LowStockThreshold INT;
+
+--    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
+--    FROM Configuration
+--    WHERE ConfigName = 'LowStockThreshold';
+
+--    UPDATE b
+--    SET NeedsRefill = CASE
+--                        WHEN i.CurrentCount <= @LowStockThreshold THEN 1
+--                        ELSE 0
+--                      END
+--    FROM Bin b
+--    INNER JOIN inserted i ON b.BinID = i.BinID;
+
+--    INSERT INTO BinNotification (BinID, NotificationType, NotificationTime, Status)
+--    SELECT i.BinID, 'LowStock', GETDATE(), 'Open'
+--    FROM inserted i
+--    INNER JOIN deleted d ON i.BinID = d.BinID
+--    WHERE i.CurrentCount <= @LowStockThreshold
+--      AND d.CurrentCount > @LowStockThreshold;
+--END;
+--GO
+
+
+---- =========================================================
+---- TRIGGER: Clear Refill Flag After Refill
+---- DESCRIPTION: Clears NeedsRefill when bin count goes above threshold
+---- =========================================================
+--IF OBJECT_ID('dbo.trg_ClearRefillFlagAfterRefill', 'TR') IS NOT NULL
+--    DROP TRIGGER dbo.trg_ClearRefillFlagAfterRefill;
+--GO
+
+--CREATE TRIGGER dbo.trg_ClearRefillFlagAfterRefill
+--ON Bin
+--AFTER UPDATE
+--AS
+--BEGIN
+--    SET NOCOUNT ON;
+
+--    DECLARE @LowStockThreshold INT;
+
+--    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
+--    FROM Configuration
+--    WHERE ConfigName = 'LowStockThreshold';
+
+--    UPDATE b
+--    SET NeedsRefill = 0
+--    FROM Bin b
+--    INNER JOIN inserted i ON b.BinID = i.BinID
+--    INNER JOIN deleted d ON i.BinID = d.BinID
+--    WHERE i.CurrentCount > @LowStockThreshold
+--      AND i.CurrentCount > d.CurrentCount;
+--END;
+--GO
+
+
+---- =========================================================
+---- TRIGGER: Close Notification After Refill
+---- DESCRIPTION: Closes open notifications when bin is refilled
+---- =========================================================
+--IF OBJECT_ID('dbo.trg_CloseNotificationAfterRefill', 'TR') IS NOT NULL
+--    DROP TRIGGER dbo.trg_CloseNotificationAfterRefill;
+--GO
+
+--CREATE TRIGGER dbo.trg_CloseNotificationAfterRefill
+--ON Bin
+--AFTER UPDATE
+--AS
+--BEGIN
+--    SET NOCOUNT ON;
+
+--    DECLARE @LowStockThreshold INT;
+
+--    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
+--    FROM Configuration
+--    WHERE ConfigName = 'LowStockThreshold';
+
+--    UPDATE bn
+--    SET Status = 'Closed'
+--    FROM BinNotification bn
+--    INNER JOIN inserted i ON bn.BinID = i.BinID
+--    INNER JOIN deleted d ON i.BinID = d.BinID
+--    WHERE bn.Status = 'Open'
+--      AND i.CurrentCount > @LowStockThreshold
+--      AND i.CurrentCount > d.CurrentCount;
+--END;
+--GO
+
+-- ------------------------------------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------------
+----------------------------------- == TRIGGERS == -----------------------------------
+--------------------------------------------------------------------------------------
+
 -- =========================================================
 -- TRIGGER: Low Stock Notification
--- DESCRIPTION: Flags low stock bins and creates a notification
+-- DESCRIPTION: Creates a low stock notification when bin count reaches threshold
 -- =========================================================
 IF OBJECT_ID('dbo.trg_LowStockNotification', 'TR') IS NOT NULL
     DROP TRIGGER dbo.trg_LowStockNotification;
+GO
+
+IF OBJECT_ID('dbo.trg_ClearRefillFlagAfterRefill', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_ClearRefillFlagAfterRefill;
+GO
+
+IF OBJECT_ID('dbo.trg_CloseNotificationAfterRefill', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_CloseNotificationAfterRefill;
 GO
 
 CREATE TRIGGER dbo.trg_LowStockNotification
@@ -758,84 +871,44 @@ BEGIN
     FROM Configuration
     WHERE ConfigName = 'LowStockThreshold';
 
-    UPDATE b
-    SET NeedsRefill = CASE
-                        WHEN i.CurrentCount <= @LowStockThreshold THEN 1
-                        ELSE 0
-                      END
-    FROM Bin b
-    INNER JOIN inserted i ON b.BinID = i.BinID;
-
     INSERT INTO BinNotification (BinID, NotificationType, NotificationTime, Status)
     SELECT i.BinID, 'LowStock', GETDATE(), 'Open'
     FROM inserted i
     INNER JOIN deleted d ON i.BinID = d.BinID
     WHERE i.CurrentCount <= @LowStockThreshold
-      AND d.CurrentCount > @LowStockThreshold;
+      AND d.CurrentCount > @LowStockThreshold
+      AND NOT EXISTS
+      (
+          SELECT 1
+          FROM BinNotification bn
+          WHERE bn.BinID = i.BinID
+            AND bn.Status = 'Open'
+      );
 END;
 GO
+SELECT * FROM Configuration;
+SELECT * FROM WorkStation;
+SELECT * FROM Worker;
+SELECT * FROM Parts;
+SELECT * FROM Bin;
 
+SELECT TOP 10 * FROM Lamps ORDER BY LampID DESC;
+SELECT TOP 20 * FROM AssemblyComponent ORDER BY AssemblyComponentID DESC;
+SELECT TOP 10 * FROM QualityInspection ORDER BY InspectionID DESC;
 
--- =========================================================
--- TRIGGER: Clear Refill Flag After Refill
--- DESCRIPTION: Clears NeedsRefill when bin count goes above threshold
--- =========================================================
-IF OBJECT_ID('dbo.trg_ClearRefillFlagAfterRefill', 'TR') IS NOT NULL
-    DROP TRIGGER dbo.trg_ClearRefillFlagAfterRefill;
-GO
+SELECT TOP 10 * 
+FROM Lamps
+ORDER BY LampID DESC;
 
-CREATE TRIGGER dbo.trg_ClearRefillFlagAfterRefill
-ON Bin
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
+SELECT TOP 10 * 
+FROM QualityInspection
+ORDER BY InspectionID DESC;
 
-    DECLARE @LowStockThreshold INT;
+SELECT BinID, StationID, PartID, CurrentCount, NeedsRefill
+FROM Bin
+WHERE StationID = 2
+ORDER BY PartID;
 
-    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
-    FROM Configuration
-    WHERE ConfigName = 'LowStockThreshold';
-
-    UPDATE b
-    SET NeedsRefill = 0
-    FROM Bin b
-    INNER JOIN inserted i ON b.BinID = i.BinID
-    INNER JOIN deleted d ON i.BinID = d.BinID
-    WHERE i.CurrentCount > @LowStockThreshold
-      AND i.CurrentCount > d.CurrentCount;
-END;
-GO
-
-
--- =========================================================
--- TRIGGER: Close Notification After Refill
--- DESCRIPTION: Closes open notifications when bin is refilled
--- =========================================================
-IF OBJECT_ID('dbo.trg_CloseNotificationAfterRefill', 'TR') IS NOT NULL
-    DROP TRIGGER dbo.trg_CloseNotificationAfterRefill;
-GO
-
-CREATE TRIGGER dbo.trg_CloseNotificationAfterRefill
-ON Bin
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @LowStockThreshold INT;
-
-    SELECT @LowStockThreshold = CAST(ConfigValue AS INT)
-    FROM Configuration
-    WHERE ConfigName = 'LowStockThreshold';
-
-    UPDATE bn
-    SET Status = 'Closed'
-    FROM BinNotification bn
-    INNER JOIN inserted i ON bn.BinID = i.BinID
-    INNER JOIN deleted d ON i.BinID = d.BinID
-    WHERE bn.Status = 'Open'
-      AND i.CurrentCount > @LowStockThreshold
-      AND i.CurrentCount > d.CurrentCount;
-END;
-GO
+SELECT TOP 20 *
+FROM Lamps
+ORDER BY LampID DESC;
