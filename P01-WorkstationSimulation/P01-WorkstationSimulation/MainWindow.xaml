@@ -78,6 +78,7 @@
 
             <ComboBox   Grid.Column="1"
                         Name="WorkerSelect"
+                        SelectionChanged="WorkerSelect_SelectionChanged"
                         Height="20"
                         Width="200"
                         Margin="20,40,0,0"
