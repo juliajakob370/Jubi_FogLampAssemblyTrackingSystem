@@ -10,13 +10,16 @@
  *                  https://learn.microsoft.com/en-us/dotnet/api/system.data.common.dbconnection.openasync?view=net-10.0
  *                  https://learn.microsoft.com/en-us/dotnet/api/system.data.common.dbcommand.executescalarasync?view=net-10.0
 */
+using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.Configuration;
+using System.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Data.SqlClient;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -25,8 +28,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.Data.SqlClient;
-using System.Threading.Tasks;
 
 
 // Program flow - pseudo code so i can better do this ✅
@@ -56,6 +57,12 @@ namespace P01_WorkstationSimulation
         private readonly string connectionString; // create variable to store connection string from app.config
         private readonly Dictionary<string, string> configValues = new(); // create a dictionary to store config values
         private readonly int configRefreshTime = 5; // declare to avoid magic nums 
+        private DispatcherTimer configRefreshTimer; // dispatch timer for the cofig refresh - so that the config tool can actually update the values being used
+
+        // UI stuff
+        private TimeSpan simulationTimeSpan = TimeSpan.Zero; // accumulated time
+        private DispatcherTimer stopwatchTimer;              // timer for UI update
+        private int simulationCycleCount = 0; // track completed cycles for scaled time
 
         // SIMULATION FIELDS 
         private bool isSimulating = false; // check to see if the program running a simulation
@@ -66,7 +73,9 @@ namespace P01_WorkstationSimulation
         private Workstation? selectedWorkstation; // store selected work station as a Workstation object
         private Worker? selectedWorker; // store selected worker as a worker object
 
-        private DispatcherTimer configRefreshTimer; // dispatch timer for the cofig refresh - so that the config tool can actually update the values being used
+        /// <summary>
+        /// Main initialization
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -355,6 +364,9 @@ namespace P01_WorkstationSimulation
         /// <summary>
         /// Main simulation loop with timescale
         /// </summary>
+        /// <summary>
+        /// Main simulation loop with timescale
+        /// </summary>
         private void StartSimulationLoop()
         {
             decimal timescale = GetConfigDecimal("SimulationTimeScale");  // get the timescale from config with 
@@ -369,7 +381,31 @@ namespace P01_WorkstationSimulation
             simulationTimer.Tick += SimulationTimer_Tick; // set the tick event
             simulationTimer.Start(); // start the timer
 
+            // Stopwatch UI timer - updates display every 100ms while simulation runs
+            stopwatchTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100) // fast enough for smooth UI updates
+            };
+            stopwatchTimer.Tick += StopwatchTimer_Tick; // update stopwatch display
+            stopwatchTimer.Start(); // start the stopwatch timer
+
+            simulationTimeSpan = TimeSpan.Zero; // reset stopwatch for this simulation
+            simulationCycleCount = 0;           // reset cycle counter for scaled time
+
             Logger.Log($"Simulation STARTED | Timescale: {timescale:F1}x | Cycle Interval: {cycleInterval:F1}s"); // log simulation start
+        }
+
+
+        /// <summary>
+        /// Updates the stopwatch display every 100ms during simulation
+        /// </summary>
+        private void StopwatchTimer_Tick(object sender, EventArgs e)
+        {
+            simulationTimeSpan += stopwatchTimer.Interval; // accumulate real elapsed time
+
+            // format as MM:ss for UI
+            string formattedTime = $"{(int)simulationTimeSpan.TotalMinutes:D2}:{simulationTimeSpan.Seconds:D2}";
+            StopwatchDisplay.Text = formattedTime;
         }
 
         /// <summary>
