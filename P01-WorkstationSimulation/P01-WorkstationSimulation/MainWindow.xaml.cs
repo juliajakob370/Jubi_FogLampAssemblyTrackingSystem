@@ -387,30 +387,40 @@ namespace P01_WorkstationSimulation
         /// </summary>
         private void StartSimulationLoop()
         {
-            decimal timescale = GetConfigDecimal("SimulationTimeScale");  // get the timescale from config with 
-            decimal baseCycleSeconds = GetConfigDecimal("BaseTime");  // get the base time in seconds from the config
-            decimal cycleInterval = baseCycleSeconds / timescale;  // cycle interval
+            if (selectedWorker == null)
+            {
+                Logger.Log("ERROR: No worker selected.");
+                return;
+            }
 
-            // create the timer
+            decimal timescale = GetConfigDecimal("SimulationTimeScale");
+            decimal workerAssemblyTime = CalculateAssemblyTime(selectedWorker);
+
+            if (timescale <= 0)
+            {
+                timescale = 1;
+            }
+
+            decimal cycleInterval = workerAssemblyTime / timescale;
+
             simulationTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds((double)cycleInterval) // make the interval the scaled time
+                Interval = TimeSpan.FromSeconds((double)cycleInterval)
             };
-            simulationTimer.Tick += SimulationTimer_Tick; // set the tick event
-            simulationTimer.Start(); // start the timer
+            simulationTimer.Tick += SimulationTimer_Tick;
+            simulationTimer.Start();
 
-            // Stopwatch UI timer - updates display every 100ms while simulation runs
             stopwatchTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(100) // fast enough for smooth UI updates
+                Interval = TimeSpan.FromMilliseconds(100)
             };
-            stopwatchTimer.Tick += StopwatchTimer_Tick; // update stopwatch display
-            stopwatchTimer.Start(); // start the stopwatch timer
+            stopwatchTimer.Tick += StopwatchTimer_Tick;
+            stopwatchTimer.Start();
 
-            simulationTimeSpan = TimeSpan.Zero; // reset stopwatch for this simulation
-            simulationCycleCount = 0;           // reset cycle counter for scaled time
+            simulationTimeSpan = TimeSpan.Zero;
+            simulationCycleCount = 0;
 
-            Logger.Log($"Simulation STARTED | Timescale: {timescale:F1}x | Cycle Interval: {cycleInterval:F1}s"); // log simulation start
+            Logger.Log($"Simulation STARTED | Timescale: {timescale:F1}x | Worker Cycle Time: {workerAssemblyTime:F1}s | Timer Interval: {cycleInterval:F1}s");
         }
 
 
@@ -497,6 +507,8 @@ namespace P01_WorkstationSimulation
 
             try
             {
+                Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
+
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     await connection.OpenAsync();
@@ -504,7 +516,7 @@ namespace P01_WorkstationSimulation
                     using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
                     {
                         cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@Barcode", GenerateBarcode(selectedStation.StationID));
+                        cmd.Parameters.AddWithValue("@Barcode", barcode);
                         cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
                         cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
                         cmd.Parameters.AddWithValue("@TrayID", 1);
@@ -516,14 +528,13 @@ namespace P01_WorkstationSimulation
                     }
                 }
 
-                Logger.Log($"{barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")} | Parts consumed");
+                Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
             }
             catch (Exception ex)
             {
                 Logger.Log($"ERROR: {ex.Message}");
             }
         }
-
         private string GenerateBarcode(int stationId)
         {
             return $"LAMP-S{stationId}-{DateTime.Now:yyyyMMddHHmmssfff}";
