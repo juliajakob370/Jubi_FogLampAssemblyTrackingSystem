@@ -490,51 +490,51 @@ namespace P01_WorkstationSimulation
         /// </summary>
         /// <param name="barcode">The unique barcode identifying the product for which the lamp cycle is to be run. Cannot be null.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task RunLampCycleAsync()
+private async Task RunLampCycleAsync()
+{
+    Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
+    Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
+
+    if (selectedWorker == null || selectedStation == null)
+    {
+        MessageBox.Show("Please select a worker and workstation.");
+        return;
+    }
+
+    decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
+    bool isDefective = CalculateDefectResult(selectedWorker);
+    string barcode = GenerateBarcode(selectedStation.StationID);
+
+    try
+    {
+        Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
         {
-            Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
-            Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
+            await connection.OpenAsync();
 
-            if (selectedWorker == null || selectedStation == null)
+            using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
             {
-                MessageBox.Show("Please select a worker and workstation.");
-                return;
-            }
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Barcode", barcode);
+                cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
+                cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
+                cmd.Parameters.AddWithValue("@TrayID", 1);
+                cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
+                cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
+                cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
 
-            decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
-            bool isDefective = CalculateDefectResult(selectedWorker);
-            string barcode = GenerateBarcode(selectedStation.StationID);
-
-            try
-            {
-                Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
-
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    await connection.OpenAsync();
-
-                    using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
-                    {
-                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@Barcode", barcode);
-                        cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
-                        cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
-                        cmd.Parameters.AddWithValue("@TrayID", 1);
-                        cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
-                        cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
-                        cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
-
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-                }
-
-                Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
-            }
-            catch (Exception ex)
-            {
-                Logger.Log($"ERROR: {ex.Message}");
+                await cmd.ExecuteNonQueryAsync();
             }
         }
+
+        Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
+    }
+    catch (Exception ex)
+    {
+        Logger.Log($"ERROR: {ex.Message}");
+    }
+}
         private string GenerateBarcode(int stationId)
         {
             return $"LAMP-S{stationId}-{DateTime.Now:yyyyMMddHHmmssfff}";
