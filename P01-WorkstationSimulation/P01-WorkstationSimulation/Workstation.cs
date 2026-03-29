@@ -1,7 +1,7 @@
 ﻿/*
  * FILE           : Workstation.cs
  *  PROJECT       : Project Manufacturing P01 > Workstation Simulation (Milestone 2)
- *  PROGRAMMERS   : Julia Jakob
+ *  PROGRAMMERS   : Julia Jakob & Bibi Murwared
  *  FIRST VERSION : 2026-03-27
  *  DESCRIPTION   : Class for Workstations
 */
