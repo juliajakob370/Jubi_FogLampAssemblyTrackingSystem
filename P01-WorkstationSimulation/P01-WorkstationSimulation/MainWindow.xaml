@@ -4,160 +4,165 @@
     PROGRAMMER    : Julia Jakob
     FIRST VERSION : 2026-03-27
     DESCRIPTION   : Main window XAML for the workstation simulation tool
-    -->
-    <Window x:Class="P01_WorkstationSimulation.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:P01_WorkstationSimulation"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="700">
+-->
+<Window x:Class="P01_WorkstationSimulation.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:P01_WorkstationSimulation"
+    mc:Ignorable="d"
+    Title="MainWindow" Height="450" Width="700">
+
     <Grid Background="#FFEFEB">
         <Grid.RowDefinitions>
             <!-- 0 Title Row -->
-            <RowDefinition Height="Auto"/>
-            <!-- 1 Stopwatch Row -->
-            <RowDefinition Height="Auto"/>
-            <!-- 2 Worker Row -->
-            <RowDefinition Height="Auto"/>
-            <!-- 3 Workstation Row -->
-            <RowDefinition Height="Auto"/>
-            <!-- 4 Buttons Row -->
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2*"/>
+            <!-- 1 Worker Row -->
+            <RowDefinition Height="1*"/>
+            <!-- 2 Workstation Row -->
+            <RowDefinition Height="1*"/>
+            <!-- 3 Buttons Row -->
+            <RowDefinition Height="2*"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0"
-            Name="TitleText"
-            FontSize="40"
-            FontFamily="Consolas"
-            FontWeight="Bold"
-            Text="WORKSTATION SIMULATOR"
-            Margin="0,20,0,0"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Foreground="#995C68"/>
-        <Button Grid.Row="0"
-                   Name="CloseButton"
-                   Click="CloseButton_Click"
-                   Background="Transparent"
-                   Foreground="#995C68"
-                   Content="❌"
-                   FontSize="30"
-                   FontFamily="Consolas"
-                   BorderThickness="0"
-                   HorizontalAlignment="Right"
-                   Margin="0,20,20,0"
-                   ToolTip="Close Station"
-                   />
-        <TextBlock Grid.Row="1"
-                   Name="StopwatchDisplay"
-                   FontSize="80"
-                   FontFamily="Consolas"
-                   FontWeight="Bold"
-                   Text="00:00"
-                    Margin="0,40,0,0"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Foreground="#6D6875"/>
-        
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock  Grid.Column="0"
-                        Name="WorkerSelectLabel"
-                        FontSize="20"
-                        FontFamily="Consolas"
-                        FontWeight="Bold"
-                        Text="Select Worker:"
-                        Margin="0,40,20,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Foreground="#6D6875"/>  
 
-            <ComboBox   Grid.Column="1"
-                        Name="WorkerSelect"
-                        SelectionChanged="WorkerSelect_SelectionChanged"
-                        Height="20"
-                        Width="200"
-                        Margin="20,40,0,0"
-                        HorizontalAlignment="Left"
-                        Background="#FFCDB2"
-                        Foreground="#6D6875"
-                        FontWeight="SemiBold"
-                        FontFamily="Consolas"/>
+        <!-- Title -->
+        <Grid Grid.Row="0">
+            <TextBlock
+                Name="TitleText"
+                FontSize="40"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Text="WORKSTATION SIMULATOR"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="#995C68"/>
 
+            <Button
+                Name="CloseButton"
+                Click="CloseButton_Click"
+                Background="Transparent"
+                Foreground="#995C68"
+                Content="❌"
+                FontSize="30"
+                FontFamily="Consolas"
+                BorderThickness="0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Margin="0,0,20,0"
+                ToolTip="Close Station"/>
         </Grid>
-        <Grid Grid.Row="3">
+
+        <!-- Worker Selection -->
+        <Grid Grid.Row="1" VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock  Grid.Column="0"
-                        Name="WorkstationSelectLabel"
-                        FontSize="20"
-                        FontFamily="Consolas"
-                        FontWeight="Bold"
-                        Text="Select Workstation:"
-                        Margin="0,30,20,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Foreground="#6D6875"
-                        />
 
-            <ComboBox   Grid.Column="1"
-                        Name="WorkstationSelect"
-                        SelectionChanged="WorkstationSelect_SelectionChanged"
-                        Height="20"
-                        Width="200"
-                        Margin="20,30,0,0"
-                        HorizontalAlignment="Left"
-                        Background="#FFCDB2"
-                        Foreground="#6D6875"
-                        FontWeight="SemiBold"
-                        FontFamily="Consolas"/>
+            <TextBlock  
+                Grid.Column="0"
+                Name="WorkerSelectLabel"
+                FontSize="20"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Text="Select Worker:"
+                Margin="0,0,20,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Foreground="#6D6875"/>
 
+            <ComboBox   
+                Grid.Column="1"
+                Name="WorkerSelect"
+                SelectionChanged="WorkerSelect_SelectionChanged"
+                Height="25"
+                Width="200"
+                Margin="20,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Background="#FFCDB2"
+                Foreground="#6D6875"
+                FontWeight="SemiBold"
+                FontFamily="Consolas"/>
         </Grid>
-        <Grid Grid.Row="4">
+
+        <!-- Workstation Selection -->
+        <Grid Grid.Row="2" VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0"
-                    Name="StartButton"
-                    Click="StartButton_Click"
-                    Height="30"
-                    Width="150"
-                    Content="Start"
-                    FontSize="20"
-                    FontFamily="Consolas"
-                    FontWeight="Bold"
-                    BorderThickness="2"
-                    BorderBrush="#6d6875"
-                    Margin="20,40,0,0"
-                    HorizontalAlignment="Center"
-                    Background="#ccd5ae"
-                    Foreground="#6d6875"
-                    IsEnabled="False"/>
-            
-            <Button Grid.Column="1"
-                    Name="StopButton"
-                    Click="StopButton_Click"
-                    Height="30"
-                    Width="150"
-                    Content="Stop"
-                    FontSize="20"
-                    FontFamily="Consolas"
-                    FontWeight="Bold"
-                    BorderThickness="2"
-                    BorderBrush="#6d6875"
-                    Margin="20,40,0,0"
-                    HorizontalAlignment="Center"
-                    Background="#e5989b"
-                    Foreground="#6d6875"
-                    IsEnabled="False"/>
+            <TextBlock  
+                Grid.Column="0"
+                Name="WorkstationSelectLabel"
+                FontSize="20"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Text="Select Workstation:"
+                Margin="0,0,20,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Foreground="#6D6875"/>
+
+            <ComboBox   
+                Grid.Column="1"
+                Name="WorkstationSelect"
+                SelectionChanged="WorkstationSelect_SelectionChanged"
+                Height="25"
+                Width="200"
+                Margin="20,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Background="#FFCDB2"
+                Foreground="#6D6875"
+                FontWeight="SemiBold"
+                FontFamily="Consolas"/>
+        </Grid>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="3" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Button 
+                Grid.Column="0"
+                Name="StartButton"
+                Click="StartButton_Click"
+                Height="35"
+                Width="150"
+                Content="Start"
+                FontSize="20"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="2"
+                BorderBrush="#6d6875"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#ccd5ae"
+                Foreground="#6d6875"
+                IsEnabled="False"/>
+
+            <Button 
+                Grid.Column="1"
+                Name="StopButton"
+                Click="StopButton_Click"
+                Height="35"
+                Width="150"
+                Content="Stop"
+                FontSize="20"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="2"
+                BorderBrush="#6d6875"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#e5989b"
+                Foreground="#6d6875"
+                IsEnabled="False"/>
         </Grid>
 
     </Grid>

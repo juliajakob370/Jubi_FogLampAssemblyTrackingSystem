@@ -58,10 +58,7 @@ namespace P01_WorkstationSimulation
         private readonly int configRefreshTime = 5; // declare to avoid magic nums 
         private DispatcherTimer configRefreshTimer; // dispatch timer for the cofig refresh - so that the config tool can actually update the values being used
 
-        // UI stuff
-        private TimeSpan simulationTimeSpan = TimeSpan.Zero; // accumulated time
-        private DispatcherTimer stopwatchTimer;              // timer for UI update
-        private int simulationCycleCount = 0; // track completed cycles for scaled time
+
 
         // SIMULATION FIELDS 
         private bool isSimulating = false; // check to see if the program running a simulation
@@ -410,30 +407,8 @@ namespace P01_WorkstationSimulation
             simulationTimer.Tick += SimulationTimer_Tick;
             simulationTimer.Start();
 
-            stopwatchTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(100)
-            };
-            stopwatchTimer.Tick += StopwatchTimer_Tick;
-            stopwatchTimer.Start();
-
-            simulationTimeSpan = TimeSpan.Zero;
-            simulationCycleCount = 0;
 
             Logger.Log($"Simulation STARTED | Timescale: {timescale:F1}x | Worker Cycle Time: {workerAssemblyTime:F1}s | Timer Interval: {cycleInterval:F1}s");
-        }
-
-
-        /// <summary>
-        /// Updates the stopwatch display every 100ms during simulation
-        /// </summary>
-        private void StopwatchTimer_Tick(object sender, EventArgs e)
-        {
-            simulationTimeSpan += stopwatchTimer.Interval; // accumulate real elapsed time
-
-            // format as MM:ss for UI
-            string formattedTime = $"{(int)simulationTimeSpan.TotalMinutes:D2}:{simulationTimeSpan.Seconds:D2}";
-            StopwatchDisplay.Text = formattedTime;
         }
 
         /// <summary>
@@ -573,7 +548,6 @@ private async Task RunLampCycleAsync()
         private void StopSimulation()
         {
             simulationTimer?.Stop();
-            stopwatchTimer?.Stop();
             isSimulating = false;
             StartConfigRefreshTimer();
 
