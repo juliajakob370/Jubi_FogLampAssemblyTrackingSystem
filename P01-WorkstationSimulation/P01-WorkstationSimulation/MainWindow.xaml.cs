@@ -58,8 +58,6 @@ namespace P01_WorkstationSimulation
         private readonly int configRefreshTime = 5; // declare to avoid magic nums 
         private DispatcherTimer configRefreshTimer; // dispatch timer for the cofig refresh - so that the config tool can actually update the values being used
 
-
-
         // SIMULATION FIELDS 
         private bool isSimulating = false; // check to see if the program running a simulation
         private int selectedStationID; // selected station ID from UI

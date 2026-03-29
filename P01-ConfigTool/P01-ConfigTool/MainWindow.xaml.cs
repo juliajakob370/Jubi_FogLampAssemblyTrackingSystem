@@ -177,7 +177,11 @@ namespace P01_ConfigTool
         /// <param name="e">event data for the click</param>
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            CheckUnsavedChangesAndClose();
+            if (ConfirmClose())
+            {
+                userConfirmedClose = true;
+                Close(); // close after checking
+            }
         }
 
         /// <summary>
@@ -288,11 +292,49 @@ namespace P01_ConfigTool
         {
             if (userConfirmedClose)
             {
-                return; // Allow the close to proceed
+                return; // allow close
             }
 
-            CheckUnsavedChangesAndClose();
-            e.Cancel = true; // Prevents close until user confirms
+            if (!ConfirmClose())
+            {
+                e.Cancel = true; // stop closing
+            }
+        }
+
+        /// <summary>
+        /// Get the user to confirm cloing the config tool with unsaved items
+        /// </summary>
+        /// <returns>Bool to indicate whether to continue closing or not true = close false = cancel</returns>
+        private bool ConfirmClose()
+        {
+            bool hasUnsavedChanges = configurations.Any(item => item.NeedsSaving || item.ConfigID == 0);
+
+            if (!hasUnsavedChanges)
+            {
+                return true;
+            }
+
+            MessageBoxResult result = MessageBox.Show(
+                "You have unsaved changes.\nSave before closing?",
+                "ConfigTool - Unsaved Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    Save_Click(this, new RoutedEventArgs());
+                    return !configurations.Any(item => item.NeedsSaving || item.ConfigID == 0);
+
+                case MessageBoxResult.No:
+                    return true;
+
+                case MessageBoxResult.Cancel:
+                    return false;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -306,7 +348,6 @@ namespace P01_ConfigTool
             if (!hasUnsavedChanges)
             {
                 userConfirmedClose = true;
-                Close();
                 return;
             }
 
