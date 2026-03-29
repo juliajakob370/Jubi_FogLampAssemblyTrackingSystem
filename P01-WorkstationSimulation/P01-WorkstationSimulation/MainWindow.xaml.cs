@@ -1,7 +1,7 @@
 ﻿/*
  * FILE           : MainWindow.xaml.cs
  *  PROJECT       : Project Manufacturing P01 > Workstation Simulation (Milestone 2)
- *  PROGRAMMERS   : Julia Jakob
+ *  PROGRAMMERS   : Julia Jakob & Bibi Murwared
  *  FIRST VERSION : 2026-03-27
  *  DESCRIPTION   : The backend for the Workstation Simulation program that will update the database 
  *                  to simulate work flow
@@ -29,23 +29,6 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 
 
-// Program flow - pseudo code so i can better do this ✅
-// - don't need to worry about restocking or defect rates yet - just timing ✅
-// User opens workstation simulator ✅
-// Load in the available Workers from the Workers Table ✅
-// Load in the available Workstations from the Workstations table ✅
-// User selects one Worker and one Workstation from the dropdowns ✅
-// When they have selected options from both drop downs - start button is enabled ✅
-// When the user clicks the start button it starts the simulation updating according to the config table values
-// Dispatch Timer - use to update UI and to perform the DB updates on their workstation's parts
-// Keep going until one bin reaches 0 for now
-// should work for multiple instances
-// exclude ones that are in use
-// log all the stuff so we can check to make sure it's working
-
-
-
-
 namespace P01_WorkstationSimulation
 {
     /// <summary>
@@ -58,11 +41,13 @@ namespace P01_WorkstationSimulation
         private readonly int configRefreshTime = 5; // declare to avoid magic nums 
         private DispatcherTimer configRefreshTimer; // dispatch timer for the cofig refresh - so that the config tool can actually update the values being used
 
+
+
         // SIMULATION FIELDS 
         private bool isSimulating = false; // check to see if the program running a simulation
         private int selectedStationID; // selected station ID from UI
         private int selectedWorkerID; // selected worker ID from UI
-       // private Dictionary<int, string> workerSkillNames = new();  // create a dictionary to map worker ID's to the name of their skill levels
+        // private Dictionary<int, string> workerSkillNames = new();  // create a dictionary to map worker ID's to the name of their skill levels
         private DispatcherTimer simulationTimer; // timer for simulation
         private Workstation? selectedWorkstation; // store selected work station as a Workstation object
         private Worker? selectedWorker; // store selected worker as a worker object
@@ -292,40 +277,6 @@ namespace P01_WorkstationSimulation
         }
 
         /// <summary>
-        /// Get each of the worker's skill level names and put them in a disctionary for easier access later
-        /// </summary>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-       /* private async Task LoadWorkerSkillsAsync()
-        {
-            workerSkillNames.Clear(); // clear the dictionary to start fresh
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync(); // connect to db asynchronously
-
-                // create query
-                string query = @"SELECT w.WorkerID, sl.SkillLevelName FROM Worker w JOIN Skills sl ON w.SkillLevelID = sl.SkillLevelID WHERE w.WorkerID = @workerID;";
-
-                using (SqlCommand cmd = new SqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@workerID", selectedWorkerID);
-                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())
-                        {
-                            int workerID = reader.GetInt32(0);
-                            string skillName = reader.GetString(1);
-                            workerSkillNames[workerID] = skillName;
-                        }
-                    }
-                }
-            }
-
-            Logger.Log($"Loaded skill for Worker {selectedWorkerID}: {workerSkillNames[selectedWorkerID]}");
-        }
-       */
-
-        /// <summary>
         /// Used to check if the start button should be enabled - user needs to select values first
         /// </summary>
         private void CheckStartButton()
@@ -359,8 +310,6 @@ namespace P01_WorkstationSimulation
 
             Logger.Initialize(selectedWorkstation.StationName);
 
-            // await LoadWorkerSkillsAsync();
-
             Logger.Log($"Worker selected - {selectedWorker.WorkerName} ({selectedWorker.SkillLevelName}) | Speed: {selectedWorker.Speed} | DefectRate: {selectedWorker.DefectRate}");
             isSimulating = true;
             configRefreshTimer?.Stop();
@@ -374,6 +323,8 @@ namespace P01_WorkstationSimulation
             WorkerSelect.IsEnabled = false;
             WorkstationSelect.IsEnabled = false;
         }
+
+
         /// <summary>
         /// Main simulation loop with timescale
         /// </summary>
@@ -463,56 +414,62 @@ namespace P01_WorkstationSimulation
         /// </summary>
         /// <param name="barcode">The unique barcode identifying the product for which the lamp cycle is to be run. Cannot be null.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-private async Task RunLampCycleAsync()
-{
-    Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
-    Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
-
-    if (selectedWorker == null || selectedStation == null)
-    {
-        MessageBox.Show("Please select a worker and workstation.");
-        return;
-    }
-
-    decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
-    bool isDefective = CalculateDefectResult(selectedWorker);
-    string barcode = GenerateBarcode(selectedStation.StationID);
-
-    try
-    {
-        Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
-
-        using (SqlConnection connection = new SqlConnection(connectionString))
+        private async Task RunLampCycleAsync()
         {
-            await connection.OpenAsync();
+            Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
+            Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
 
-            using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
+            if (selectedWorker == null || selectedStation == null)
             {
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Barcode", barcode);
-                cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
-                cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
-                cmd.Parameters.AddWithValue("@TrayID", 1);
-                cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
-                cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
-                cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
+                MessageBox.Show("Please select a worker and workstation.");
+                return;
+            }
 
-                await cmd.ExecuteNonQueryAsync();
+            decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
+            bool isDefective = CalculateDefectResult(selectedWorker);
+            string barcode = GenerateBarcode(selectedStation.StationID);
+
+            try
+            {
+                Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Barcode", barcode);
+                        cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
+                        cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
+                        cmd.Parameters.AddWithValue("@TrayID", 1);
+                        cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
+                        cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
+
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"ERROR: {ex.Message}");
             }
         }
 
-        Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
-    }
-    catch (Exception ex)
-    {
-        Logger.Log($"ERROR: {ex.Message}");
-    }
-}
+        /// <summary>
+        /// Creates a unique barcode using station ID and timestamp
+        /// </summary>
+        /// <param name="stationId"></param>
+        /// <returns></returns>
         private string GenerateBarcode(int stationId)
         {
             return $"LAMP-S{stationId}-{DateTime.Now:yyyyMMddHHmmssfff}";
         }
-        //------------------------------------------------------------------------------------------------------------------------
+
         /// <summary>
         /// Calculates the assembly time for the selected worker based on the base time
         /// from the configuration table and the worker's speed multiplier.
@@ -539,6 +496,7 @@ private async Task RunLampCycleAsync()
             double roll = random.NextDouble() * 100.0;
             return roll < (double)selectedWorker.DefectRate;
         }
+
         /// <summary>
         /// Gracefully stop simulation + resume config refresh
         /// </summary>
@@ -559,6 +517,8 @@ private async Task RunLampCycleAsync()
 
             Logger.Log("Simulation STOPPED!");
         }
+
+
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             StopSimulation();
