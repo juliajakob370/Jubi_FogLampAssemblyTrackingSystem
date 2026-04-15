@@ -1,22 +1,25 @@
-/*
+﻿/*
  * FILE          : P01-JubiFogLampAssemblyDatabase.sql
  * PROJECT       : P01 - Manufacturing
  * PROGRAMMER    : Julia Jakob, Bibi Murwared Enayat Zada
  * DESCRIPTION   : This script creates the Jubi Foglamp Assembly Database and everything needed for the simulations
  */
--- == DROP DATABASE IF IT EXISTS == --
-IF EXISTS (SELECT name FROM sys.databases WHERE name = 'Jubi')
-    DROP DATABASE Jubi;
+
+USE master;
 GO
 
--- == CREATE THE DATABASE == --
+IF DB_ID('Jubi') IS NOT NULL
+BEGIN
+    ALTER DATABASE Jubi SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE Jubi;
+END
+GO
+
 CREATE DATABASE Jubi;
 GO
 
--- == USE THE JUBI DATABASE == --
 USE Jubi;
 GO
-	
 
  -------------------------------------------
  -- == CREATE TABLE == ---------------------
@@ -242,8 +245,38 @@ CREATE TABLE RunnerActivity
         FOREIGN KEY (BinID) REFERENCES Bin(BinID)
 );
 
+--------------------------------------------------------------------------------------
+---------------------------- == CHECK CONSTRAINTS == ---------------------------------
+--------------------------------------------------------------------------------------
+
 -- =========================================================
--- SEED DATA
+-- CHECK: Parts Default Capacity must be > 0
+-- =========================================================
+ALTER TABLE Parts
+ADD CONSTRAINT CK_Parts_DefaultCapacity_Positive
+CHECK (DefaultCapacity > 0);
+GO
+
+
+-- =========================================================
+-- CHECK: Bin Current Count must be >= 0
+-- =========================================================
+ALTER TABLE Bin
+ADD CONSTRAINT CK_Bin_CurrentCount_NonNegative
+CHECK (CurrentCount >= 0);
+GO
+
+
+-- =========================================================
+-- CHECK: Tray Capacity must be > 0
+-- =========================================================
+ALTER TABLE Tray
+ADD CONSTRAINT CK_Tray_Capacity_Positive
+CHECK (Capacity > 0);
+GO
+
+-- =========================================================
+--                        SEED DATA
 -- =========================================================
 
 -- =========================================================
@@ -665,6 +698,38 @@ BEGIN
 END;
 GO
 
+-- =========================================================
+-- PROCEDURE: Reset Configuration To Defaults
+-- DESCRIPTION: Deletes all configuration rows, resets identity, and reloads default values
+-- =========================================================
+IF OBJECT_ID('dbo.ResetConfigurationToDefaults', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.ResetConfigurationToDefaults;
+GO
+
+CREATE PROCEDURE dbo.ResetConfigurationToDefaults
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM dbo.Configuration;
+    DBCC CHECKIDENT ('dbo.Configuration', RESEED, 0);
+
+    INSERT INTO Configuration (ConfigName, ConfigValue, DataType, Description)
+    VALUES
+    ('Harness.Capacity', '55', 'int', 'Bin capacity for harnesses'),
+    ('Reflector.Capacity', '35', 'int', 'Bin capacity for reflectors'),
+    ('Housing.Capacity', '24', 'int', 'Bin capacity for housings'),
+    ('Lens.Capacity', '40', 'int', 'Bin capacity for lenses'),
+    ('Bulb.Capacity', '60', 'int', 'Bin capacity for bulbs'),
+    ('Bezel.Capacity', '75', 'int', 'Bin capacity for bezels'),
+    ('LowStockThreshold', '5', 'int', 'Number of parts threshold to flag as low quantity'),
+    ('TotalOrderQuantity', '500', 'int', 'Total number of lamps to build'),
+    ('NumberOfWorkStations', '3', 'int', 'Number of work stations in the assembly area'),
+    ('SimulationTimeScale', '1.0', 'decimal', 'Time scale for simulation'),
+    ('BaseTime', '60.0', 'decimal', 'Base time for how fast it takes to assemble a completed fog lamp in seconds');
+END;
+GO
+
 --------------------------------------------------------------------------------------
 ----------------------------------- == TRIGGERS == -----------------------------------
 -- make the database react automatically when something changes
@@ -713,3 +778,232 @@ BEGIN
       );
 END;
 GO
+
+-- =========================================================
+-- TRIGGER: Tray Full Auto Send + Create New Tray
+-- DESCRIPTION: When tray reaches capacity, mark as sent to testing
+-- =========================================================
+IF OBJECT_ID('dbo.trg_TrayFullSendToTesting', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_TrayFullSendToTesting;
+GO
+
+CREATE TRIGGER dbo.trg_TrayFullSendToTesting
+ON Lamps
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @TrayID INT;
+
+    DECLARE tray_cursor CURSOR FOR
+    SELECT DISTINCT TrayID
+    FROM inserted
+    WHERE TrayID IS NOT NULL;
+
+    OPEN tray_cursor;
+    FETCH NEXT FROM tray_cursor INTO @TrayID;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        DECLARE @Capacity INT;
+        DECLARE @CurrentCount INT;
+
+        -- Get tray capacity
+        SELECT @Capacity = Capacity
+        FROM Tray
+        WHERE TrayID = @TrayID;
+
+        -- Count lamps in tray
+        SELECT @CurrentCount = COUNT(*)
+        FROM Lamps
+        WHERE TrayID = @TrayID;
+
+        -- If tray is full
+        IF @CurrentCount >= @Capacity
+        BEGIN
+            -- Send tray to testing
+            UPDATE Tray
+            SET TrayStatus = 'SentToTesting',
+                SentToTestingTime = GETDATE()
+            WHERE TrayID = @TrayID;
+
+            -- CREATE NEW TRAY 
+            INSERT INTO Tray (Capacity, TrayStatus)
+            VALUES (@Capacity, 'Empty');
+        END
+
+        FETCH NEXT FROM tray_cursor INTO @TrayID;
+    END
+
+    CLOSE tray_cursor;
+    DEALLOCATE tray_cursor;
+END;
+GO
+
+--------------------------------------------------------------------------------------
+------------------------------------ == FUNCTIONS == ---------------------------------
+--------------------------------------------------------------------------------------
+
+-- =========================================================
+-- FUNCTION: Calculate Yield
+-- DESCRIPTION: Returns the overall yield percentage of lamps
+-- =========================================================
+IF OBJECT_ID('dbo.fn_CalculateYield', 'FN') IS NOT NULL
+    DROP FUNCTION dbo.fn_CalculateYield;
+GO
+
+CREATE FUNCTION dbo.fn_CalculateYield()
+RETURNS DECIMAL(5,2)
+AS
+BEGIN
+    DECLARE @Total INT;
+    DECLARE @Good INT;
+    DECLARE @Yield DECIMAL(5,2);
+
+    -- Total lamps
+    SELECT @Total = COUNT(*) FROM Lamps;
+
+    -- Good lamps
+    SELECT @Good = COUNT(*) 
+    FROM Lamps 
+    WHERE IsDefective = 0;
+
+    -- Calculate yield safely
+    IF @Total = 0
+        SET @Yield = 0;
+    ELSE
+        SET @Yield = (@Good * 100.0) / @Total;
+
+    RETURN @Yield;
+END;
+GO
+
+--------------------------------------------------------------------------------------
+------------------------------------ == INDEXES == -----------------------------------
+--------------------------------------------------------------------------------------
+
+-- =========================================================
+-- INDEX: Bin (StationID + CurrentCount)
+-- PURPOSE: Speeds up bin checks and low stock queries
+-- =========================================================
+IF EXISTS (SELECT name FROM sys.indexes WHERE name = 'IX_Bin_StationID_CurrentCount')
+    DROP INDEX IX_Bin_StationID_CurrentCount ON Bin;
+GO
+
+CREATE INDEX IX_Bin_StationID_CurrentCount
+ON Bin (StationID, CurrentCount);
+GO
+
+
+-- =========================================================
+-- INDEX: BinNotification (BinID + Status)
+-- PURPOSE: Speeds up runner queries for open notifications
+-- =========================================================
+IF EXISTS (SELECT name FROM sys.indexes WHERE name = 'IX_BinNotification_BinID_Status')
+    DROP INDEX IX_BinNotification_BinID_Status ON BinNotification;
+GO
+
+CREATE INDEX IX_BinNotification_BinID_Status
+ON BinNotification (BinID, Status);
+GO
+
+
+-- =========================================================
+-- INDEX: Lamps (StationID + WorkerID)
+-- PURPOSE: Speeds up queries for reporting and simulation tracking
+-- =========================================================
+IF EXISTS (SELECT name FROM sys.indexes WHERE name = 'IX_Lamps_StationID_WorkerID')
+    DROP INDEX IX_Lamps_StationID_WorkerID ON Lamps;
+GO
+
+CREATE INDEX IX_Lamps_StationID_WorkerID
+ON Lamps (StationID, WorkerID);
+GO
+
+--------------------------------------------------------------------------------------
+-------------------------------------- == VIEWS == -----------------------------------
+--------------------------------------------------------------------------------------
+
+-- =========================================================
+-- VIEW: Low Stock Bins
+-- DESCRIPTION: Shows bins that currently need refill
+-- =========================================================
+IF OBJECT_ID('dbo.vwLowStockBins', 'V') IS NOT NULL
+    DROP VIEW dbo.vwLowStockBins;
+GO
+
+CREATE VIEW dbo.vwLowStockBins
+AS
+SELECT
+    b.BinID,
+    b.StationID,
+    ws.StationName,
+    b.PartID,
+    p.PartName,
+    b.CurrentCount,
+    b.NeedsRefill,
+    b.LastReplenishment
+FROM Bin b
+INNER JOIN WorkStation ws ON b.StationID = ws.StationID
+INNER JOIN Parts p ON b.PartID = p.PartID
+WHERE b.NeedsRefill = 1;
+GO
+
+-- =========================================================
+-- VIEW: Assembly Line Summary
+-- DESCRIPTION: Shows production totals and yield percentage
+-- =========================================================
+IF OBJECT_ID('dbo.vwAssemblyLineSummary', 'V') IS NOT NULL
+    DROP VIEW dbo.vwAssemblyLineSummary;
+GO
+
+CREATE VIEW dbo.vwAssemblyLineSummary
+AS
+SELECT
+    COUNT(*) AS TotalProduced,
+    SUM(CASE WHEN IsDefective = 0 THEN 1 ELSE 0 END) AS GoodLamps,
+    SUM(CASE WHEN IsDefective = 1 THEN 1 ELSE 0 END) AS DefectiveLamps,
+    CASE
+        WHEN COUNT(*) = 0 THEN 0
+        ELSE CAST(SUM(CASE WHEN IsDefective = 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS DECIMAL(5,2))
+    END AS YieldPercentage
+FROM Lamps;
+GO
+--========================================= TESTS ======================================================
+
+SELECT TOP 5 LampID, StationID, WorkerID, TrayID, IsDefective, AssemblyTime, Barcode
+FROM Lamps
+ORDER BY LampID DESC;
+
+SELECT TOP 5 InspectionID, LampID, InspectionTime, IsDefective, Notes
+FROM QualityInspection
+ORDER BY InspectionID DESC;
+
+SELECT TOP 12 AssemblyComponentID, LampID, PartID, QuantityUsed
+FROM AssemblyComponent
+ORDER BY AssemblyComponentID DESC;
+
+SELECT BinID, StationID, PartID, CurrentCount, NeedsRefill
+FROM Bin
+WHERE StationID = 1
+ORDER BY PartID;
+
+SELECT TOP 5 NotificationID, BinID, NotificationType, NotificationTime, Status
+FROM BinNotification
+ORDER BY NotificationID DESC;
+
+SELECT dbo.fn_CalculateYield() AS Yield;
+
+SELECT * FROM dbo.vwLowStockBins;
+SELECT * FROM dbo.vwAssemblyLineSummary;
+
+EXEC dbo.sp_RefillBin @BinID = 1;
+
+SELECT BinID, CurrentCount, NeedsRefill, LastReplenishment
+FROM Bin
+WHERE BinID = 1;
+
+SELECT TOP 5 * FROM Lamps ORDER BY LampID DESC;
+SELECT TOP 5 * FROM QualityInspection ORDER BY InspectionID DESC;
+SELECT * FROM Bin WHERE StationID = 1 ORDER BY PartID;
