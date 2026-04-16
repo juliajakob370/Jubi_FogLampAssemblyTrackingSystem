@@ -1,0 +1,208 @@
+﻿<!--
+    FILE          : MainWindow.xaml
+    PROJECT       : Project Manufacturing - AssemblyLineKanban
+    PROGRAMMER    : Julia Jakob
+    FIRST VERSION : 2026-04-15
+    DESCRIPTION   : Main window XAML for the assembly line kanban display
+-->
+    <Window x:Class="AssemblyLineKanban.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AssemblyLineKanban"
+        mc:Ignorable="d"
+        Title="Assembly Line Kanban" Height="350" Width="750">
+
+    <Grid Background="#FFEFEB">
+        <Grid.RowDefinitions>
+            <!-- Row 0: Title -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 1: Running Workstations -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 2: Main Content -->
+            <RowDefinition Height="*"/>
+            <!-- Row 3: Footer -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ================= ROW 0: TITLE ================= -->
+        <TextBlock
+            Grid.Row="0"
+            Text="ASSEMBLY LINE KANBAN"
+            FontSize="32"
+            FontFamily="Consolas"
+            FontWeight="Bold"
+            Foreground="#995C68"
+            HorizontalAlignment="Center"
+            Margin="0,20,0,10"/>
+
+        <!-- ================= ROW 1: WORKSTATIONS ================= -->
+        <StackPanel
+            Grid.Row="1"
+            Orientation="Horizontal"
+            Margin="20,0,0,10">
+
+            <TextBlock
+                Text="Number of Running Workstations: "
+                FontSize="18"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#B5838D"/>
+
+            <TextBlock
+                Name="RunningWorkstationsText"
+                Text="0"
+                FontSize="18"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#6D6875"/>
+        </StackPanel>
+
+        <!-- ================= ROW 2: MAIN CONTENT ================= -->
+        <Grid Grid.Row="2" Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ===== LEFT SIDE ===== -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="2*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Label -->
+                <TextBlock
+                    Grid.Row="0"
+                    Text="Yield for each workstation:"
+                    FontSize="18"
+                    FontFamily="Consolas"
+                    FontWeight="Bold"
+                    Foreground="#B5838D"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,15"/>
+
+                <!-- List -->
+                <ListBox
+                    Grid.Row="1"
+                    Name="WorkstationYieldList"
+                    Background="#B5838D"
+                    Foreground="#6D6875"
+                    FontFamily="Lucida Console"
+                    BorderThickness="0"
+                    Width="300"
+                    HorizontalAlignment="Left"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    />
+            </Grid>
+
+            <!-- ===== RIGHT SIDE ===== -->
+            <Grid Grid.Column="1" Margin="20,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Order Amount -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock
+                        Text="Order Amount: "
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#B5838D"/>
+
+                    <TextBlock
+                        Name="OrderAmountText"
+                        Text="--"
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#6D6875"/>
+                </StackPanel>
+
+                <!-- Order Progress -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock
+                        Text="Order Progress: "
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#B5838D"/>
+
+                    <TextBlock
+                        Name="OrderProgressText"
+                        Text="-- / --"
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#6D6875"/>
+                </StackPanel>
+
+                <!-- Lamps Produced -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock
+                        Text="Lamps Produced: "
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#B5838D"/>
+
+                    <TextBlock
+                        Name="LampsProducedText"
+                        Text="--"
+                        FontSize="18"
+                        FontFamily="Consolas"
+                        FontWeight="Bold"
+                        Foreground="#6D6875"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- ================= ROW 3: FOOTER ================= -->
+        <Grid Grid.Row="3" Margin="20,10,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Total Yield -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock
+                    Text="Yield for all Workstations: "
+                    FontSize="18"
+                    FontFamily="Consolas"
+                    FontWeight="Bold"
+                    Foreground="#B5838D"/>
+
+                <TextBlock
+                    Name="TotalYieldText"
+                    Text="0.00%"
+                    FontSize="18"
+                    FontFamily="Consolas"
+                    FontWeight="Bold"
+                    Foreground="#6D6875"/>
+            </StackPanel>
+
+            <!-- Close Button -->
+            <Button
+                Grid.Column="1"
+                Name="CloseButton"
+                Click="CloseButton_Click"
+                Content="CLOSE"
+                Width="120"
+                Height="35"
+                Background="#6D6875"
+                Foreground="#FFEFEB"
+                FontSize="18"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="0"
+                HorizontalAlignment="Right"/>
+        </Grid>
+
+    </Grid>
+</Window>
