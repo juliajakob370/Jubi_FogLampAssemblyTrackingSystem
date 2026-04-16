@@ -50,6 +50,9 @@ GO
  ('NumberOfWorkStations', '3', 'int', 'Number of work stations in the assembly area'),
  ('SimulationTimeScale', '1.0', 'decimal', 'Time scale for simulation'),
 
+  -- Tray / Simulation Configurations -------------------------------
+ ('TrayCapacity', '12', 'int', 'Number of lamps a tray can hold before being sent to testing'),
+
  -- Worker Time Configuration Values ----------------------------------------------
  ('BaseTime', '60.0','decimal','Base time for how fast it takes to assemble a completed fog lamp in seconds');
 
@@ -542,7 +545,7 @@ GO
 
 -- =========================================================
 -- PROCEDURE: Run Full Lamp Cycle
--- DESCRIPTION: Starts lamp, adds components, consumes parts, and records inspection
+-- DESCRIPTION: Assembles one lamp, assigns it to a tray, and consumes parts
 -- =========================================================
 IF OBJECT_ID('dbo.sp_RunLampCycle', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_RunLampCycle;
@@ -554,33 +557,29 @@ CREATE PROCEDURE dbo.sp_RunLampCycle
     @WorkerID INT,
     @TrayID INT = NULL,
     @AssemblyTime DECIMAL(8,2),
-    @IsDefective BIT,
-    @Notes VARCHAR(255) = NULL
+    @IsDefective BIT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     DECLARE @LampID INT;
 
+    -- insert the new lamp into the current tray
     INSERT INTO Lamps (Barcode, StationID, WorkerID, TrayID, IsDefective, AssemblyTime)
-    VALUES (@Barcode, @StationID, @WorkerID, @TrayID, 0, @AssemblyTime);
+    VALUES (@Barcode, @StationID, @WorkerID, @TrayID, @IsDefective, @AssemblyTime);
 
     SET @LampID = SCOPE_IDENTITY();
 
+    -- add the six parts used in the lamp
     INSERT INTO AssemblyComponent (LampID, PartID, QuantityUsed)
     SELECT @LampID, PartID, 1
     FROM Parts;
 
+    -- reduce the part counts in the station bins
     EXEC dbo.sp_ConsumePartsFromBins @StationID = @StationID;
-
-    INSERT INTO QualityInspection (LampID, InspectionTime, IsDefective, Notes)
-    VALUES (@LampID, GETDATE(), @IsDefective, @Notes);
-
-    UPDATE Lamps
-    SET IsDefective = @IsDefective
-    WHERE LampID = @LampID;
 END;
 GO
+
 -- =========================================================
 -- PROCEDURE: Assign Worker To Station
 -- DESCRIPTION: Updates the station assigned to a worker
@@ -697,6 +696,40 @@ BEGIN
     VALUES (@Capacity, @TrayStatus, NULL);
 END;
 GO
+
+
+-- =========================================================
+-- PROCEDURE: Process Full Tray
+-- DESCRIPTION: Records quality inspection for all lamps in a full tray
+-- =========================================================
+IF OBJECT_ID('dbo.sp_ProcessFullTray', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_ProcessFullTray;
+GO
+
+CREATE PROCEDURE dbo.sp_ProcessFullTray
+    @TrayID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- insert inspection rows only for lamps in this tray that were not already inspected
+    INSERT INTO QualityInspection (LampID, InspectionTime, IsDefective, Notes)
+    SELECT 
+        l.LampID,
+        GETDATE(),
+        l.IsDefective,
+        CASE WHEN l.IsDefective = 1 THEN 'Fail' ELSE 'Pass' END
+    FROM Lamps l
+    WHERE l.TrayID = @TrayID
+      AND NOT EXISTS
+      (
+          SELECT 1
+          FROM QualityInspection qi
+          WHERE qi.LampID = l.LampID
+      );
+END;
+GO
+
 
 -- =========================================================
 -- PROCEDURE: Reset Configuration To Defaults
@@ -847,7 +880,7 @@ GO
 
 -- =========================================================
 -- FUNCTION: Calculate Yield
--- DESCRIPTION: Returns the overall yield percentage of lamps
+-- DESCRIPTION: Returns the overall yield percentage of tested lamps
 -- =========================================================
 IF OBJECT_ID('dbo.fn_CalculateYield', 'FN') IS NOT NULL
     DROP FUNCTION dbo.fn_CalculateYield;
@@ -861,15 +894,15 @@ BEGIN
     DECLARE @Good INT;
     DECLARE @Yield DECIMAL(5,2);
 
-    -- Total lamps
-    SELECT @Total = COUNT(*) FROM Lamps;
+    -- total tested lamps
+    SELECT @Total = COUNT(*) FROM QualityInspection;
 
-    -- Good lamps
-    SELECT @Good = COUNT(*) 
-    FROM Lamps 
+    -- good tested lamps
+    SELECT @Good = COUNT(*)
+    FROM QualityInspection
     WHERE IsDefective = 0;
 
-    -- Calculate yield safely
+    -- calculate yield safely
     IF @Total = 0
         SET @Yield = 0;
     ELSE
@@ -878,7 +911,6 @@ BEGIN
     RETURN @Yield;
 END;
 GO
-
 --------------------------------------------------------------------------------------
 ------------------------------------ == INDEXES == -----------------------------------
 --------------------------------------------------------------------------------------
@@ -952,7 +984,7 @@ GO
 
 -- =========================================================
 -- VIEW: Assembly Line Summary
--- DESCRIPTION: Shows production totals and yield percentage
+-- DESCRIPTION: Shows tested production totals and yield percentage
 -- =========================================================
 IF OBJECT_ID('dbo.vwAssemblyLineSummary', 'V') IS NOT NULL
     DROP VIEW dbo.vwAssemblyLineSummary;
@@ -961,14 +993,40 @@ GO
 CREATE VIEW dbo.vwAssemblyLineSummary
 AS
 SELECT
-    COUNT(*) AS TotalProduced,
-    SUM(CASE WHEN IsDefective = 0 THEN 1 ELSE 0 END) AS GoodLamps,
-    SUM(CASE WHEN IsDefective = 1 THEN 1 ELSE 0 END) AS DefectiveLamps,
+    (SELECT COUNT(*) FROM Lamps) AS TotalProduced,
+    (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 0) AS GoodLamps,
+    (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 1) AS DefectiveLamps,
+    dbo.fn_CalculateYield() AS YieldPercentage;
+GO
+
+-- =========================================================
+-- VIEW: kanban summary
+-- DESCRIPTION: 
+-- =========================================================
+
+IF OBJECT_ID('dbo.vwKanbanSummary', 'V') IS NOT NULL
+    DROP VIEW dbo.vwKanbanSummary;
+GO
+
+CREATE VIEW dbo.vwKanbanSummary
+AS
+SELECT
+    CAST((SELECT ConfigValue FROM Configuration WHERE ConfigName = 'TotalOrderQuantity') AS INT) AS OrderAmount,
+    (SELECT COUNT(*) FROM Lamps) AS TotalProduced,
+    (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 0) AS GoodLamps,
+    (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 1) AS DefectiveLamps,
+    (SELECT COUNT(*)
+     FROM Lamps l
+     INNER JOIN Tray t ON l.TrayID = t.TrayID
+     WHERE t.TrayStatus IN ('InUse', 'Empty')) AS InProcessCount,
     CASE
-        WHEN COUNT(*) = 0 THEN 0
-        ELSE CAST(SUM(CASE WHEN IsDefective = 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS DECIMAL(5,2))
-    END AS YieldPercentage
-FROM Lamps;
+        WHEN (SELECT COUNT(*) FROM QualityInspection) = 0 THEN 0
+        ELSE CAST(
+            (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 0) * 100.0 /
+            (SELECT COUNT(*) FROM QualityInspection)
+            AS DECIMAL(5,2)
+        )
+    END AS YieldPercentage;
 GO
 --========================================= TESTS ======================================================
 

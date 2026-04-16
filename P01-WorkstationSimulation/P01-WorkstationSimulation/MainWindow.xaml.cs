@@ -52,6 +52,8 @@ namespace P01_WorkstationSimulation
         private Workstation? selectedWorkstation; // store selected work station as a Workstation object
         private Worker? selectedWorker; // store selected worker as a worker object
 
+        private bool waitingForRunner = false;
+
         /// <summary>
         /// Main initialization
         /// </summary>
@@ -324,10 +326,6 @@ namespace P01_WorkstationSimulation
             WorkstationSelect.IsEnabled = false;
         }
 
-
-        /// <summary>
-        /// Main simulation loop with timescale
-        /// </summary>
         /// <summary>
         /// Main simulation loop with timescale
         /// </summary>
@@ -361,20 +359,163 @@ namespace P01_WorkstationSimulation
         }
 
         /// <summary>
-        /// Simulation tick - check bins → build lamp → repeat
+        /// Handles each simulation timer tick.
+        /// Checks if the order is complete, waits for runner refill if bins are empty,
+        /// and runs a new lamp cycle when production can continue.
         /// </summary>
+        /// <param name="sender">object that raised the timer event</param>
+        /// <param name="e">event data for the timer tick</param>
         private async void SimulationTimer_Tick(object sender, EventArgs e)
         {
-            // Check if all bins have parts left
-            if (!await CheckBinsHavePartsAsync())
+            // stop all simulation if the production goal has been reached
+            if (await IsProductionCompleteAsync())
             {
-                Logger.Log($"🛑 BIN EMPTY - Simulation Stopped!"); // will be changed later for final version to work with runners until goal is reached
-                StopSimulation(); // stops for now ---- NEEDS TO BE UPDATED LATER FOR FINAL SUBMISSION TO JUST FLAG IT AND WAIT FOR RUNNER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                Logger.Log("ORDER COMPLETE - Simulation stopped.");
+                StopSimulation();
                 return;
             }
 
-            // Build lamp (consumes parts)
+            // check if the current station still has enough parts to continue
+            bool hasParts = await CheckBinsHavePartsAsync();
+
+            // if there are no parts left, pause and wait for runner refill
+            if (!hasParts)
+            {
+                // only log the waiting message once until refill happens
+                if (!waitingForRunner)
+                {
+                    waitingForRunner = true;
+                    Logger.Log($"WAITING FOR RUNNER - Station {selectedStationID} is out of parts.");
+                }
+
+                return; // skip this cycle and keep waiting
+            }
+
+            // if parts are back after waiting, resume the simulation
+            if (waitingForRunner)
+            {
+                waitingForRunner = false;
+                Logger.Log($"RUNNER REFILL DETECTED - Resuming production at Station {selectedStationID}.");
+            }
+
+            // run the next lamp cycle
             await RunLampCycleAsync();
+        }
+
+
+        /// <summary>
+        /// Calls the refill stored procedure for a specific bin.
+        /// This is used by the runner logic to replenish parts.
+        /// </summary>
+        /// <param name="binId">the ID of the bin to refill</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task RefillBinAsync(int binId)
+        {
+            // connect to the database
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync(); // open connection asynchronously
+
+                // call the refill stored procedure
+                using (SqlCommand cmd = new SqlCommand("sp_RefillBin", connection))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@BinID", binId); // pass the bin ID
+                    await cmd.ExecuteNonQueryAsync(); // run the refill
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a tray has reached its capacity.
+        /// If the tray is full, it sends the tray for testing by calling the tray processing stored procedure.
+        /// </summary>
+        /// <param name="trayId">the ID of the tray to check</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task ProcessFullTrayIfNeededAsync(int trayId)
+        {
+            // connect to the database
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync(); // open connection asynchronously
+
+                // query the tray capacity and current number of lamps in it
+                string query = @"
+                    SELECT 
+                        t.Capacity,
+                        COUNT(l.LampID) AS LampCount
+                    FROM Tray t
+                    LEFT JOIN Lamps l ON t.TrayID = l.TrayID
+                    WHERE t.TrayID = @TrayID
+                    GROUP BY t.Capacity;";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@TrayID", trayId); // pass selected tray ID
+
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
+                    {
+                        // if tray data exists, compare lamp count to tray capacity
+                        if (await reader.ReadAsync())
+                        {
+                            int capacity = reader.GetInt32(reader.GetOrdinal("Capacity"));
+                            int lampCount = reader.GetInt32(reader.GetOrdinal("LampCount"));
+
+                            // if tray is full, process it for testing
+                            if (lampCount >= capacity)
+                            {
+                                reader.Close(); // close reader before running another command
+
+                                // call stored procedure to process the full tray
+                                using (SqlCommand processCmd = new SqlCommand("sp_ProcessFullTray", connection))
+                                {
+                                    processCmd.CommandType = System.Data.CommandType.StoredProcedure;
+                                    processCmd.Parameters.AddWithValue("@TrayID", trayId);
+                                    await processCmd.ExecuteNonQueryAsync();
+                                }
+
+                                // log tray event
+                                Logger.Log($"TRAY FULL - Tray {trayId} sent to testing.");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks whether the production order goal has been reached.
+        /// Compares the total required good lamps to the number of passed lamps from quality inspection.
+        /// </summary>
+        /// <returns>True if the production goal has been reached, otherwise false.</returns>
+        private async Task<bool> IsProductionCompleteAsync()
+        {
+            // connect to the database
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync(); // open connection asynchronously
+
+                // get the total order goal and the number of good lamps that passed inspection
+                string query = @"
+                    SELECT 
+                        CAST((SELECT ConfigValue FROM Configuration WHERE ConfigName = 'TotalOrderQuantity') AS INT) AS OrderGoal,
+                        (SELECT COUNT(*) FROM QualityInspection WHERE IsDefective = 0) AS GoodLamps;";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection))
+                using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
+                {
+                    // if values are returned, compare them
+                    if (await reader.ReadAsync())
+                    {
+                        int orderGoal = reader.GetInt32(reader.GetOrdinal("OrderGoal"));
+                        int goodLamps = reader.GetInt32(reader.GetOrdinal("GoodLamps"));
+
+                        return goodLamps >= orderGoal; // true if production target is met
+                    }
+                }
+            }
+
+            return false; // default to false if something unexpected happens
         }
 
         /// <summary>
@@ -390,7 +531,7 @@ namespace P01_WorkstationSimulation
 
                 using (SqlCommand cmd = new SqlCommand(query, connection))
                 {
-                    cmd.Parameters.AddWithValue("@stationID", selectedStationID); // add parameter with value to SQL wuery
+                    cmd.Parameters.AddWithValue("@stationID", selectedStationID); // add parameter with value to SQL query
 
                     object result = await cmd.ExecuteScalarAsync();
                     int emptyBins = result != null ? Convert.ToInt32(result) : 0; // get the count of the empty bins or set it to 0 if null
@@ -409,53 +550,104 @@ namespace P01_WorkstationSimulation
         }
 
         /// <summary>
-        /// Executes the lamp cycle process for the specified product barcode asynchronously, recording assembly data
-        /// and logging the operation result.
+        /// Gets the current active tray ID from the database.
+        /// Returns the first tray that is still available for production.
         /// </summary>
-        /// <param name="barcode">The unique barcode identifying the product for which the lamp cycle is to be run. Cannot be null.</param>
+        /// <returns>The ID of the tray currently being used for production.</returns>
+        private async Task<int> GetCurrentTrayIdAsync()
+        {
+            // connect to the database
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync(); // open connection asynchronously
+
+                // get the first tray that is still available
+                string query = @"
+                    SELECT TOP 1 TrayID
+                    FROM Tray
+                    WHERE TrayStatus IN ('InUse', 'Empty')
+                    ORDER BY TrayID;";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection))
+                {
+                    object result = await cmd.ExecuteScalarAsync();
+
+                    // if a tray was found, return its ID
+                    if (result != null)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                }
+            }
+
+            // throw an error if no tray is available
+            throw new Exception("No available tray found.");
+        }
+
+        /// <summary>
+        /// Runs one full lamp assembly cycle for the selected worker and workstation.
+        /// Creates a barcode, gets the current tray, sends the cycle data to the database,
+        /// and checks if the tray became full after the lamp was added.
+        /// </summary>
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task RunLampCycleAsync()
         {
+            // get the currently selected worker and workstation from the UI
             Worker? selectedWorker = WorkerSelect.SelectedItem as Worker;
             Workstation? selectedStation = WorkstationSelect.SelectedItem as Workstation;
 
+            // stop if either selection is missing
             if (selectedWorker == null || selectedStation == null)
             {
                 MessageBox.Show("Please select a worker and workstation.");
                 return;
             }
 
+            // calculate cycle values for this lamp
             decimal assemblyTime = CalculateAssemblyTime(selectedWorker);
             bool isDefective = CalculateDefectResult(selectedWorker);
             string barcode = GenerateBarcode(selectedStation.StationID);
 
             try
             {
-                Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName}");
+                // get the tray currently being used for production
+                int currentTrayId = await GetCurrentTrayIdAsync();
 
+                // log the start of the lamp cycle
+                Logger.Log($"Starting lamp cycle | Barcode: {barcode} | Station: {selectedStation.StationID} | Worker: {selectedWorker.WorkerName} | Tray: {currentTrayId}");
+
+                // connect to the database
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    await connection.OpenAsync();
+                    await connection.OpenAsync(); // open connection asynchronously
 
+                    // call stored procedure to run the lamp cycle
                     using (SqlCommand cmd = new SqlCommand("sp_RunLampCycle", connection))
                     {
                         cmd.CommandType = System.Data.CommandType.StoredProcedure;
+
+                        // pass all needed values into the stored procedure
                         cmd.Parameters.AddWithValue("@Barcode", barcode);
                         cmd.Parameters.AddWithValue("@StationID", selectedStation.StationID);
                         cmd.Parameters.AddWithValue("@WorkerID", selectedWorker.WorkerID);
-                        cmd.Parameters.AddWithValue("@TrayID", 1);
+                        cmd.Parameters.AddWithValue("@TrayID", currentTrayId);
                         cmd.Parameters.AddWithValue("@AssemblyTime", assemblyTime);
                         cmd.Parameters.AddWithValue("@IsDefective", isDefective ? 1 : 0);
-                        cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
+                        //cmd.Parameters.AddWithValue("@Notes", isDefective ? "Fail" : "Pass");
 
-                        await cmd.ExecuteNonQueryAsync();
+                        await cmd.ExecuteNonQueryAsync(); // run the cycle
                     }
                 }
 
-                Logger.Log($"Lamp cycle complete | {barcode} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
+                // after adding the lamp, check if the tray reached capacity
+                await ProcessFullTrayIfNeededAsync(currentTrayId);
+
+                // log successful completion of the lamp cycle
+                Logger.Log($"Lamp cycle complete | {barcode} | Tray: {currentTrayId} | {assemblyTime:F1}s | {(isDefective ? "Fail" : "Pass")}");
             }
             catch (Exception ex)
             {
+                // log any error that happens during the cycle
                 Logger.Log($"ERROR: {ex.Message}");
             }
         }
