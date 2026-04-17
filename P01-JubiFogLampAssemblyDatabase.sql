@@ -312,9 +312,9 @@ VALUES
 -- =========================================================
 INSERT INTO Worker (WorkerName, SkillLevelID, StationID)
 VALUES
-('Julia', 2, 1),   -- ExperiencedWorker at Station 1
-('Bibi', 1, 2),    -- NewEmployee at Station 2
-('Alex', 3, 3);    -- SuperWorker at Station 3
+('Julia - Experienced Worker', 2, 1),   -- ExperiencedWorker at Station 1
+('Bibi - New Employee', 1, 2),    -- NewEmployee at Station 2
+('Alex - Super Worker', 3, 3);    -- SuperWorker at Station 3
 
 -- =========================================================
 -- PARTS
@@ -1029,6 +1029,8 @@ SELECT
         )
     END AS YieldPercentage;
 GO
+
+
 --========================================= TESTS ======================================================
 
 SELECT TOP 5 LampID, StationID, WorkerID, TrayID, IsDefective, AssemblyTime, Barcode
@@ -1066,3 +1068,15 @@ WHERE BinID = 1;
 SELECT TOP 5 * FROM Lamps ORDER BY LampID DESC;
 SELECT TOP 5 * FROM QualityInspection ORDER BY InspectionID DESC;
 SELECT * FROM Bin WHERE StationID = 1 ORDER BY PartID;
+
+UPDATE Skills
+SET DefectRate = 10.00
+WHERE SkillLevelName = 'NewEmployee';
+
+UPDATE Skills
+SET DefectRate = 5.00
+WHERE SkillLevelName = 'ExperiencedWorker';
+
+UPDATE Skills
+SET DefectRate = 2.00
+WHERE SkillLevelName = 'SuperWorker';

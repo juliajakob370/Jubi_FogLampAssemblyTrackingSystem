@@ -24,5 +24,13 @@ namespace P01_WorkstationSimulation
         public decimal DefectRate { get; set; }
 
         public int StationID { get; set; }
+        public string WorkerDisplay
+        {
+            get
+            {
+                return $"{WorkerName} ({SkillLevelName})";
+            }
+        }
+
     }
 }
