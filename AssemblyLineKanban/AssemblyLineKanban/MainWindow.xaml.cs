@@ -1,4 +1,13 @@
-﻿using System.Configuration;
+﻿/*
+ * FILE           : MainWindow.xaml.cs
+ * PROJECT        : Project Manufacturing P01 > Assembly Line Kanban
+ * PROGRAMMERS    : Julia Jakob & Bibi Murwared
+ * FIRST VERSION  : 2026-03-27
+ * DESCRIPTION    : Backend for the Assembly Line Kanban display that shows
+ *                  real time production data including order progress,
+ *                  total production, yield, and running workstations.
+ */
+using System.Configuration;
 using System.Data.SqlClient;
 using System.Text;
 using System.Windows;

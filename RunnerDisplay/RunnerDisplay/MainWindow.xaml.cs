@@ -1,7 +1,7 @@
 ﻿/*
  * FILE           : MainWindow.xaml.cs
  * PROJECT        : Project Manufacturing - RunnerDisplay
- * PROGRAMMERS    : Julia Jakob & Bibi Murwared
+ * PROGRAMMERS    : Bibi Murwared
  * FIRST VERSION  : 2026-04-15
  * DESCRIPTION    : Backend for the Runner Display program.
  *                  Shows runner log entries in the UI and refills bins
