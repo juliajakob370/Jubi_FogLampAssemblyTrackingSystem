@@ -51,78 +51,98 @@ namespace AssemblyLineKanban
         }
 
         /// <summary>
-        /// Get the most recent values from the Kanban Summary View in the DB and update the display
+        /// Gets the most recent values from the database and updates the Kanban display.
+        /// Handles temporary database deadlocks by skipping that refresh cycle.
         /// </summary>
         private void RefreshKanban()
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-
-                // ==============================================
-                // 1. MAIN SUMMARY (get from the view in the DB)
-                // ==============================================
-                SqlCommand command = new SqlCommand("SELECT * FROM vwKanbanSummary", conn);
-                SqlDataReader reader = command.ExecuteReader();
-
-                // first read the values you need
-                if (reader.Read())
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    int order = Convert.ToInt32(reader["OrderAmount"]);
-                    int good = Convert.ToInt32(reader["GoodLamps"]);
-                    int total = Convert.ToInt32(reader["TotalProduced"]);
-                    double yield = Convert.ToDouble(reader["YieldPercentage"]);
+                    conn.Open();
 
-                    // update the displays
-                    OrderAmountText.Text = order.ToString();
-                    OrderProgressText.Text = $"{good} / {order}";
-                    LampsProducedText.Text = total.ToString();
-                    TotalYieldText.Text = $"{yield:F2}%";
-                }
+                    // ==============================================
+                    // 1. MAIN SUMMARY (get from the view in the DB)
+                    // ==============================================
+                    using (SqlCommand command = new SqlCommand("SELECT * FROM vwKanbanSummary", conn))
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            int order = Convert.ToInt32(reader["OrderAmount"]);
+                            int good = Convert.ToInt32(reader["GoodLamps"]);
+                            int total = Convert.ToInt32(reader["TotalProduced"]);
+                            double yield = Convert.ToDouble(reader["YieldPercentage"]);
 
-                reader.Close();
+                            OrderAmountText.Text = order.ToString();
+                            OrderProgressText.Text = $"{good} / {order}";
+                            LampsProducedText.Text = total.ToString();
+                            TotalYieldText.Text = $"{yield:F2}%";
+                        }
+                    }
 
-                // ===========================================
-                // 2. FIND THE NUMBER OF RUNNING WORKSTATIONS
-                // ===========================================
-                string runningStationsQuery = @"
-                                            SELECT COUNT(*)
-                                            FROM WorkStation
-                                            WHERE Status = 'Active';";
+                    // ===========================================
+                    // 2. FIND THE NUMBER OF RUNNING WORKSTATIONS
+                    // ===========================================
+                    string runningStationsQuery = @"
+                SELECT COUNT(*)
+                FROM WorkStation
+                WHERE Status = 'Active';";
 
-                using (SqlCommand wsCommand = new SqlCommand(runningStationsQuery, conn))
-                {
-                    object? result = wsCommand.ExecuteScalar();
-                    RunningWorkstationsText.Text = result?.ToString() ?? "0";
-                }
+                    using (SqlCommand wsCommand = new SqlCommand(runningStationsQuery, conn))
+                    {
+                        object? result = wsCommand.ExecuteScalar();
+                        RunningWorkstationsText.Text = result?.ToString() ?? "0";
+                    }
 
-                // ==================================
-                // 3. YIELD PER STATION CALCULATION
-                // ==================================
-                string yieldQuery = @"SELECT ws.StationName, CASE 
-                    WHEN COUNT(qi.InspectionID) = 0 THEN 0
-                    ELSE CAST(SUM(CASE WHEN qi.IsDefective = 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(qi.InspectionID) 
-                    AS DECIMAL(5,2))
+                    // ==================================
+                    // 3. YIELD PER STATION CALCULATION
+                    // ==================================
+                    string yieldQuery = @"
+                SELECT 
+                    ws.StationName,
+                    CASE 
+                        WHEN COUNT(qi.InspectionID) = 0 THEN 0
+                        ELSE CAST(
+                            SUM(CASE WHEN qi.IsDefective = 0 THEN 1 ELSE 0 END) * 100.0 
+                            / COUNT(qi.InspectionID)
+                            AS DECIMAL(5,2)
+                        )
                     END AS Yield
-                    FROM WorkStation ws
-                    LEFT JOIN Lamps l ON ws.StationID = l.StationID
-                    LEFT JOIN QualityInspection qi ON l.LampID = qi.LampID
-                    GROUP BY ws.StationName;";
+                FROM WorkStation ws
+                LEFT JOIN Lamps l ON ws.StationID = l.StationID
+                LEFT JOIN QualityInspection qi ON l.LampID = qi.LampID
+                GROUP BY ws.StationName
+                ORDER BY ws.StationName;";
 
-                SqlCommand yieldCommand = new SqlCommand(yieldQuery, conn);
-                SqlDataReader yieldReader = yieldCommand.ExecuteReader();
+                    using (SqlCommand yieldCommand = new SqlCommand(yieldQuery, conn))
+                    using (SqlDataReader yieldReader = yieldCommand.ExecuteReader())
+                    {
+                        WorkstationYieldList.Items.Clear();
 
-                WorkstationYieldList.Items.Clear();
+                        while (yieldReader.Read())
+                        {
+                            string station = yieldReader["StationName"].ToString() ?? string.Empty;
+                            double y = Convert.ToDouble(yieldReader["Yield"]);
 
-                while (yieldReader.Read())
-                {
-                    string station = yieldReader["StationName"].ToString();
-                    double y = Convert.ToDouble(yieldReader["Yield"]);
-
-                    WorkstationYieldList.Items.Add($"{station}: {y:F2}%");
+                            WorkstationYieldList.Items.Add($"{station}: {y:F2}%");
+                        }
+                    }
                 }
-
-                yieldReader.Close();
+            }
+            catch (SqlException ex) when (ex.Number == 1205)
+            {
+                // 1205 = deadlock victim
+                // skip this refresh cycle and try again on the next timer tick
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Error refreshing Kanban:\n" + ex.Message,
+                    "Database Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
     }
