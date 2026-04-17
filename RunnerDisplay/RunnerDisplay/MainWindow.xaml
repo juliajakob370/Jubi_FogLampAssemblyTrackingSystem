@@ -2,7 +2,7 @@
     FILE          : MainWindow.xaml
     PROJECT       : Project Manufacturing - RunnerDisplay
     PROGRAMMER    : Julia Jakob
-    FIRST VERSION : 2026-04-15
+    FIRST VERSION : 2026-04-16
     DESCRIPTION   : Main window XAML for the runner display tool
 -->
 <Window x:Class="RunnerDisplay.MainWindow"
