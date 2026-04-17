@@ -255,7 +255,7 @@ namespace RunnerDisplay
                         BinID = bin.BinID,
                         Location = bin.StationName,
                         TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        StatusColor = Brushes.Red
+                        StatusColor = (Brush)new BrushConverter().ConvertFrom("#D7362D")
                     });
 
                     RunnerLogger.Log($"LOW STOCK DETECTED | Part: {bin.PartName} | BinID: {bin.BinID} | Location: {bin.StationName}");
@@ -341,7 +341,7 @@ namespace RunnerDisplay
                         BinID = bin.BinID,
                         Location = bin.StationName,
                         TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        StatusColor = Brushes.Green
+                        StatusColor = (Brush)new BrushConverter().ConvertFrom("#D7362D")
                     });
 
                     // log each individual refill
