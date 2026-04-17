@@ -58,7 +58,7 @@
                 Grid.Column="1"
                 Name="WorkstationSelect"
                 Width="200"
-                Height="30"
+                Height="25"
                 Background="#FFCDB2"
                 Foreground="#6D6875"
                 FontFamily="Consolas"
