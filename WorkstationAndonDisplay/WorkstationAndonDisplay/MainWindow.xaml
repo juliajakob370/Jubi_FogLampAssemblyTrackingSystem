@@ -72,7 +72,7 @@
 
             <TextBlock Grid.Column="2" Name="HarnessCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center" FontFamily="Consolas"/>
 
-            <Ellipse Grid.Column="3" Name="HarnessStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="HarnessStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- REFLECTOR -->
@@ -92,7 +92,7 @@
 
             <TextBlock Grid.Column="2" Name="ReflectorCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-            <Ellipse Grid.Column="3" Name="ReflectorStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="ReflectorStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- HOUSING -->
@@ -112,7 +112,7 @@
 
             <TextBlock Grid.Column="2" Name="HousingCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-            <Ellipse Grid.Column="3" Name="HousingStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="HousingStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- LENS -->
@@ -132,7 +132,7 @@
 
             <TextBlock Grid.Column="2" Name="LensCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-            <Ellipse Grid.Column="3" Name="LensStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="LensStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- BULB -->
@@ -152,7 +152,7 @@
 
             <TextBlock Grid.Column="2" Name="BulbCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-            <Ellipse Grid.Column="3" Name="BulbStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="BulbStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- BEZEL -->
@@ -172,7 +172,7 @@
 
             <TextBlock Grid.Column="2" Name="BezelCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 
-            <Ellipse Grid.Column="3" Name="BezelStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+            <Ellipse Grid.Column="3" Name="BezelStatus" Width="15" Height="15" Fill="#CCD5AE" HorizontalAlignment="Left"/>
         </Grid>
 
         <!-- ================= ROW 7 ================= -->
