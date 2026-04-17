@@ -85,9 +85,16 @@ namespace AssemblyLineKanban
                 // ===========================================
                 // 2. FIND THE NUMBER OF RUNNING WORKSTATIONS
                 // ===========================================
-                SqlCommand wsCommand = new SqlCommand("SELECT COUNT(*) FROM WorkStation WHERE Status = 'Active'", conn);
+                string runningStationsQuery = @"
+                                            SELECT COUNT(*)
+                                            FROM WorkStation
+                                            WHERE Status = 'Active';";
 
-                RunningWorkstationsText.Text = wsCommand.ExecuteScalar().ToString(); // update the display
+                using (SqlCommand wsCommand = new SqlCommand(runningStationsQuery, conn))
+                {
+                    object? result = wsCommand.ExecuteScalar();
+                    RunningWorkstationsText.Text = result?.ToString() ?? "0";
+                }
 
                 // ==================================
                 // 3. YIELD PER STATION CALCULATION

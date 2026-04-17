@@ -157,6 +157,7 @@ CREATE TABLE Tray
     Capacity INT NOT NULL,
     TrayStatus VARCHAR(30) NOT NULL,
     SentToTestingTime DATETIME NULL
+
 );
 
 -- =========================================================
@@ -293,9 +294,9 @@ VALUES (500, 0, 0, 0);
 -- =========================================================
 INSERT INTO WorkStation (StationName, Status, AssemblyAreaID, Location)
 VALUES
-('Station 1', 'Active', 1, 'Assembly Line A'),
-('Station 2', 'Active', 1, 'Assembly Line B'),
-('Station 3', 'Active', 1, 'Assembly Line C');
+('Station 1', 'Inactive', 1, 'Assembly Line A'),
+('Station 2', 'Inactive', 1, 'Assembly Line B'),
+('Station 3', 'Inactive', 1, 'Assembly Line C');
 
 -- =========================================================
 -- SKILLS

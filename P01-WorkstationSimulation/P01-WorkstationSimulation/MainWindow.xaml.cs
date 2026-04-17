@@ -52,6 +52,8 @@ namespace P01_WorkstationSimulation
         private Workstation? selectedWorkstation; // store selected work station as a Workstation object
         private Worker? selectedWorker; // store selected worker as a worker object
 
+        private readonly Random random = new Random(); // single random instance for defect calculations
+
         private bool waitingForRunner = false;
 
         /// <summary>
@@ -291,9 +293,6 @@ namespace P01_WorkstationSimulation
         /// <summary>
         /// Handles the Click event of the Start button to initialize and begin the simulation process.
         /// </summary>
-        /// <remarks>This method initializes logging, loads the selected worker's skills, and starts the
-        /// simulation loop. It also updates the user interface to reflect the simulation state and disables controls to
-        /// prevent changes during simulation.</remarks>
         /// <param name="sender">The source of the event, typically the Start button.</param>
         /// <param name="e">The event data associated with the Click event.</param>
         private async void StartButton_Click(object sender, RoutedEventArgs e)
@@ -313,8 +312,12 @@ namespace P01_WorkstationSimulation
             Logger.Initialize(selectedWorkstation.StationName);
 
             Logger.Log($"Worker selected - {selectedWorker.WorkerName} ({selectedWorker.SkillLevelName}) | Speed: {selectedWorker.Speed} | DefectRate: {selectedWorker.DefectRate}");
+
             isSimulating = true;
             configRefreshTimer?.Stop();
+
+            // mark this station as active in the database
+            await UpdateWorkstationStatusAsync(selectedStationID, "Active");
 
             Logger.Log($"Simulation STARTED - Worker: {selectedWorker.WorkerName}, Station: {selectedWorkstation.StationName}");
 
@@ -679,25 +682,28 @@ namespace P01_WorkstationSimulation
         /// by comparing a random roll against the worker's defect rate.
         /// </summary>
         /// <param name="selectedWorker">The worker currently assigned to the simulation.</param>
-        /// <returns>
-        /// True if the product is defective; otherwise, false.
-        /// </returns>
+        /// <returns>True if the product is defective; otherwise, false.</returns>
         private bool CalculateDefectResult(Worker selectedWorker)
         {
-            Random random = new Random();
             double roll = random.NextDouble() * 100.0;
             return roll < (double)selectedWorker.DefectRate;
         }
 
         /// <summary>
-        /// Gracefully stop simulation + resume config refresh
+        /// Gracefully stops the simulation and resumes configuration refresh.
+        /// Also marks the workstation as inactive in the database.
         /// </summary>
-        /// 
-        private void StopSimulation()
+        private async void StopSimulation()
         {
             simulationTimer?.Stop();
             isSimulating = false;
             StartConfigRefreshTimer();
+
+            // mark the station as inactive when simulation stops
+            if (selectedStationID > 0)
+            {
+                await UpdateWorkstationStatusAsync(selectedStationID, "Inactive");
+            }
 
             Dispatcher.Invoke(() =>
             {
@@ -710,6 +716,44 @@ namespace P01_WorkstationSimulation
             Logger.Log("Simulation STOPPED!");
         }
 
+        /// <summary>
+        /// Updates the current workstation status in the database.
+        /// This allows the Kanban display to show the real number of running stations.
+        /// </summary>
+        /// <param name="stationId">The workstation ID to update.</param>
+        /// <param name="status">The status to store (Active / Inactive).</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        private async Task UpdateWorkstationStatusAsync(int stationId, string status)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+
+                string query = @"
+            UPDATE WorkStation
+            SET Status = @Status
+            WHERE StationID = @StationID;";
+
+                using (SqlCommand cmd = new SqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@Status", status);
+                    cmd.Parameters.AddWithValue("@StationID", stationId);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ensures the workstation is marked inactive if the window is closing.
+        /// </summary>
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (selectedStationID > 0)
+            {
+                await UpdateWorkstationStatusAsync(selectedStationID, "Inactive");
+            }
+        }
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
