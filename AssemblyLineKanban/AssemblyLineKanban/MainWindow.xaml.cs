@@ -108,22 +108,18 @@ namespace AssemblyLineKanban
                     // ==================================
                     // 3. YIELD PER STATION CALCULATION
                     // ==================================
-                    string yieldQuery = @"
-                SELECT 
-                    ws.StationName,
-                    CASE 
+                    string yieldQuery = @"SELECT ws.StationName, CASE 
                         WHEN COUNT(qi.InspectionID) = 0 THEN 0
                         ELSE CAST(
                             SUM(CASE WHEN qi.IsDefective = 0 THEN 1 ELSE 0 END) * 100.0 
                             / COUNT(qi.InspectionID)
-                            AS DECIMAL(5,2)
-                        )
-                    END AS Yield
-                FROM WorkStation ws
-                LEFT JOIN Lamps l ON ws.StationID = l.StationID
-                LEFT JOIN QualityInspection qi ON l.LampID = qi.LampID
-                GROUP BY ws.StationName
-                ORDER BY ws.StationName;";
+                            AS DECIMAL(5,2))
+                        END AS Yield
+                        FROM WorkStation ws
+                        LEFT JOIN Lamps l ON ws.StationID = l.StationID
+                        LEFT JOIN QualityInspection qi ON l.LampID = qi.LampID
+                        GROUP BY ws.StationName
+                        ORDER BY ws.StationName;";
 
                     using (SqlCommand yieldCommand = new SqlCommand(yieldQuery, conn))
                     using (SqlDataReader yieldReader = yieldCommand.ExecuteReader())

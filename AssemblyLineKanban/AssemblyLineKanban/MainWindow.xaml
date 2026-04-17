@@ -89,7 +89,7 @@
                     Grid.Row="1"
                     Name="WorkstationYieldList"
                     Background="#B5838D"
-                    Foreground="#6D6875"
+                    Foreground="#FFEFEB"
                     FontFamily="Lucida Console"
                     BorderThickness="0"
                     Width="300"
