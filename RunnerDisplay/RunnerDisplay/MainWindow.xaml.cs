@@ -341,7 +341,7 @@ namespace RunnerDisplay
                         BinID = bin.BinID,
                         Location = bin.StationName,
                         TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        StatusColor = (Brush)new BrushConverter().ConvertFrom("#D7362D")
+                        StatusColor = (Brush)new BrushConverter().ConvertFrom("#67e26d")
                     });
 
                     // log each individual refill
