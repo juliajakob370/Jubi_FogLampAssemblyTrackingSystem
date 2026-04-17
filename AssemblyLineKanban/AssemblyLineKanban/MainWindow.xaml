@@ -90,6 +90,7 @@
                     Name="WorkstationYieldList"
                     Background="#B5838D"
                     Foreground="#FFEFEB"
+                    FontWeight="Bold"
                     FontFamily="Lucida Console"
                     BorderThickness="0"
                     Width="300"
