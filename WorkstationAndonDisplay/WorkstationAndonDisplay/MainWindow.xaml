@@ -57,9 +57,7 @@
                 Foreground="#6D6875"
                 FontFamily="Consolas"
                 FontWeight="SemiBold"
-                SelectedIndex="0">
-                <ComboBoxItem Content="--"/>
-            </ComboBox>
+                SelectionChanged="WorkstationSelect_SelectionChanged"/>
         </Grid>
 
         <!-- ================= ROW 1: START / STOP ================= -->
@@ -80,6 +78,7 @@
 
             <Button
                 Name="StopButton"
+                Click="StopButton_Click"
                 Content="STOP"
                 Width="120"
                 Height="35"
@@ -90,7 +89,7 @@
                 BorderBrush="#6D6875"
                 Background="#E5989B"
                 Foreground="#6D6875"
-                IsEnabled="False"/>
+                IsEnabled="False"/>     
         </StackPanel>
 
         <!-- ================= BIN ROW TEMPLATE REPEATED ================= -->
