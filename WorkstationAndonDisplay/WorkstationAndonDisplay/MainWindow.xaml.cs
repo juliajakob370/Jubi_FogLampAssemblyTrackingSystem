@@ -1,7 +1,7 @@
 ﻿/*
  * FILE           : MainWindow.xaml.cs
  * PROJECT        : Project Manufacturing P01 > Workstation Andon Display
- * PROGRAMMERS    : Bibi Murwared
+ * PROGRAMMERS    : Bibi Murwaredm Julia Jakob
  * FIRST VERSION  : 2026-03-27
  * DESCRIPTION    : Backend for the Workstation Andon display that shows
  *                  real-time bin levels, replenish status, yield,
@@ -492,15 +492,6 @@ namespace WorkstationAndonDisplay
         }
 
         /// <summary>
-        /// Handles stop button click.
-        /// Stops the auto-refresh timer only.
-        /// </summary>
-        private void StopButton_Click(object sender, RoutedEventArgs e)
-        {
-            refreshTimer?.Stop();
-        }
-
-        /// <summary>
         /// Handles close button click.
         /// </summary>
         private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -517,5 +508,7 @@ namespace WorkstationAndonDisplay
             public int StationID { get; set; }
             public string StationName { get; set; } = string.Empty;
         }
+
+
     }
 }

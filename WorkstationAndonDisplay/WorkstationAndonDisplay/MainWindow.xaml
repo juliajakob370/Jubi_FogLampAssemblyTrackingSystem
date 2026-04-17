@@ -16,25 +16,14 @@
 
     <Grid Margin="30">
         <Grid.RowDefinitions>
-            <!-- 0 -->
             <RowDefinition Height="Auto"/>
-            <!-- 1 -->
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <!-- 2 -->
-            <RowDefinition Height="*"/>
-            <!-- 3 -->
-            <RowDefinition Height="*"/>
-            <!-- 4 -->
-            <RowDefinition Height="*"/>
-            <!-- 5 -->
-            <RowDefinition Height="*"/>
-            <!-- 6 -->
-            <RowDefinition Height="*"/>
-            <!-- 7 -->
-            <RowDefinition Height="*"/>
-            <!-- 8 -->
-            <RowDefinition Height="Auto"/>
-            <!-- 9 -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -66,42 +55,8 @@
                 SelectionChanged="WorkstationSelect_SelectionChanged"/>
         </Grid>
 
-        <!-- ================= ROW 1: START / STOP ================= -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
-            <Button
-                Name="StartButton"
-                Content="START"
-                Width="120"
-                Height="35"
-                Margin="0,0,10,0"
-                FontSize="18"
-                FontFamily="Consolas"
-                FontWeight="Bold"
-                BorderThickness="2"
-                BorderBrush="#6D6875"
-                Background="#CCD5AE"
-                Foreground="#6D6875"/>
-
-            <Button
-                Name="StopButton"
-                Click="StopButton_Click"
-                Content="STOP"
-                Width="120"
-                Height="35"
-                FontSize="18"
-                FontFamily="Consolas"
-                FontWeight="Bold"
-                BorderThickness="2"
-                BorderBrush="#6D6875"
-                Background="#E5989B"
-                Foreground="#6D6875"
-                IsEnabled="False"/>     
-        </StackPanel>
-
-        <!-- ================= BIN ROW TEMPLATE REPEATED ================= -->
-
         <!-- HARNESS -->
-        <Grid Grid.Row="2" Margin="0,5">
+        <Grid Grid.Row="1" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -121,7 +76,7 @@
         </Grid>
 
         <!-- REFLECTOR -->
-        <Grid Grid.Row="3" Margin="0,5">
+        <Grid Grid.Row="2" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -131,14 +86,17 @@
 
             <TextBlock Text="Reflector" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D" 
                        FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
             <ProgressBar Grid.Column="1" Name="ReflectorBar" Height="20" Maximum="100" Value="100" 
                          Background="#EEE" Foreground="#CCD5AE" Margin="20,0"/>
+
             <TextBlock Grid.Column="2" Name="ReflectorCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
             <Ellipse Grid.Column="3" Name="ReflectorStatus" Width="15" Height="15" Fill="#CCD5AE"/>
         </Grid>
 
         <!-- HOUSING -->
-        <Grid Grid.Row="4" Margin="0,5">
+        <Grid Grid.Row="3" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -148,14 +106,17 @@
 
             <TextBlock Text="Housing" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D" 
                        FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
             <ProgressBar Grid.Column="1" Name="HousingBar" Height="20" Maximum="100" Value="100" 
                          Background="#EEE" Foreground="#CCD5AE" Margin="20,0"/>
+
             <TextBlock Grid.Column="2" Name="HousingCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
             <Ellipse Grid.Column="3" Name="HousingStatus" Width="15" Height="15" Fill="#CCD5AE"/>
         </Grid>
 
         <!-- LENS -->
-        <Grid Grid.Row="5" Margin="0,5">
+        <Grid Grid.Row="4" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -165,14 +126,17 @@
 
             <TextBlock Text="Lens" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D" 
                        FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
             <ProgressBar Grid.Column="1" Name="LensBar" Height="20" Maximum="100" Value="100" 
                          Background="#EEE" Foreground="#CCD5AE" Margin="20,0"/>
+
             <TextBlock Grid.Column="2" Name="LensCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
             <Ellipse Grid.Column="3" Name="LensStatus" Width="15" Height="15" Fill="#CCD5AE"/>
         </Grid>
 
         <!-- BULB -->
-        <Grid Grid.Row="6" Margin="0,5">
+        <Grid Grid.Row="5" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -182,14 +146,17 @@
 
             <TextBlock Text="Bulb" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D" 
                        FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
             <ProgressBar Grid.Column="1" Name="BulbBar" Height="20" Maximum="100" Value="100" 
                          Background="#EEE" Foreground="#CCD5AE" Margin="20,0"/>
+
             <TextBlock Grid.Column="2" Name="BulbCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
             <Ellipse Grid.Column="3" Name="BulbStatus" Width="15" Height="15" Fill="#CCD5AE"/>
         </Grid>
 
         <!-- BEZEL -->
-        <Grid Grid.Row="7" Margin="0,5">
+        <Grid Grid.Row="6" Margin="0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="120"/>
                 <ColumnDefinition Width="*"/>
@@ -199,14 +166,17 @@
 
             <TextBlock Text="Bezel" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D" 
                        FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
             <ProgressBar Grid.Column="1" Name="BezelBar" Height="20" Maximum="100" Value="100" 
                          Background="#EEE" Foreground="#CCD5AE" Margin="20,0"/>
+
             <TextBlock Grid.Column="2" Name="BezelCount" Text="--" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
             <Ellipse Grid.Column="3" Name="BezelStatus" Width="15" Height="15" Fill="#CCD5AE"/>
         </Grid>
 
-        <!-- ================= ROW 8 ================= -->
-        <Grid Grid.Row="8" Margin="0,15,0,5">
+        <!-- ================= ROW 7 ================= -->
+        <Grid Grid.Row="7" Margin="0,15,0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -235,8 +205,8 @@
                 VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- ================= ROW 9 ================= -->
-        <Grid Grid.Row="9">
+        <!-- ================= ROW 8 ================= -->
+        <Grid Grid.Row="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
