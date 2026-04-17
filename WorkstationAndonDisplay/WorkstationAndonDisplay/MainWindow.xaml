@@ -1,12 +1,258 @@
-﻿<Window x:Class="WorkstationAndonDisplay.MainWindow"
+﻿    
+    <Window x:Class="WorkstationAndonDisplay.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WorkstationAndonDisplay"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Workstation Andon" Height="650" Width="800">
+
+    <Grid Background="#FFEFEB" Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- 0 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 1 -->
+            <RowDefinition Height="*"/>
+            <!-- 2 -->
+            <RowDefinition Height="*"/>
+            <!-- 3 -->
+            <RowDefinition Height="*"/>
+            <!-- 4 -->
+            <RowDefinition Height="*"/>
+            <!-- 5 -->
+            <RowDefinition Height="*"/>
+            <!-- 6 -->
+            <RowDefinition Height="*"/>
+            <!-- 7 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 8 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 9 -->
+        </Grid.RowDefinitions>
+
+        <!-- ================= ROW 0: TITLE + DROPDOWN ================= -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Name="TitleText"
+                Text="SELECT WORKSTATION"
+                FontSize="26"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#995C68"
+                VerticalAlignment="Center"/>
+
+            <ComboBox
+                Grid.Column="1"
+                Name="WorkstationSelect"
+                Width="200"
+                Height="30"
+                Background="#FFCDB2"
+                Foreground="#6D6875"
+                FontFamily="Consolas"
+                FontWeight="SemiBold"
+                SelectedIndex="0">
+                <ComboBoxItem Content="--"/>
+            </ComboBox>
+        </Grid>
+
+        <!-- ================= ROW 1: START / STOP ================= -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
+            <Button
+                Name="StartButton"
+                Content="START"
+                Width="120"
+                Height="35"
+                Margin="0,0,10,0"
+                FontSize="18"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="2"
+                BorderBrush="#6D6875"
+                Background="#CCD5AE"
+                Foreground="#6D6875"/>
+
+            <Button
+                Name="StopButton"
+                Content="STOP"
+                Width="120"
+                Height="35"
+                FontSize="18"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="2"
+                BorderBrush="#6D6875"
+                Background="#E5989B"
+                Foreground="#6D6875"
+                IsEnabled="False"/>
+        </StackPanel>
+
+        <!-- ================= BIN ROW TEMPLATE REPEATED ================= -->
+
+        <!-- HARNESS -->
+        <Grid Grid.Row="2" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Harness" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+
+            <ProgressBar Grid.Column="1" Name="HarnessBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+
+            <TextBlock Grid.Column="2" Name="HarnessCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas"/>
+
+            <Ellipse Grid.Column="3" Name="HarnessStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- REFLECTOR -->
+        <Grid Grid.Row="3" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Reflector" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+            <ProgressBar Grid.Column="1" Name="ReflectorBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+            <TextBlock Grid.Column="2" Name="ReflectorCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Grid.Column="3" Name="ReflectorStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- HOUSING -->
+        <Grid Grid.Row="4" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Housing" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+            <ProgressBar Grid.Column="1" Name="HousingBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+            <TextBlock Grid.Column="2" Name="HousingCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Grid.Column="3" Name="HousingStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- LENS -->
+        <Grid Grid.Row="5" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Lens" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+            <ProgressBar Grid.Column="1" Name="LensBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+            <TextBlock Grid.Column="2" Name="LensCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Grid.Column="3" Name="LensStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- BULB -->
+        <Grid Grid.Row="6" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Bulb" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+            <ProgressBar Grid.Column="1" Name="BulbBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+            <TextBlock Grid.Column="2" Name="BulbCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Grid.Column="3" Name="BulbStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- BEZEL -->
+        <Grid Grid.Row="7" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="40"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Bezel" FontFamily="Consolas" FontWeight="Bold" Foreground="#B5838D"/>
+            <ProgressBar Grid.Column="1" Name="BezelBar" Height="20" Maximum="100" Value="100" Background="#EEE" Foreground="#CCD5AE"/>
+            <TextBlock Grid.Column="2" Name="BezelCount" Text="--" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Grid.Column="3" Name="BezelStatus" Width="15" Height="15" Fill="#CCD5AE"/>
+        </Grid>
+
+        <!-- ================= ROW 8 ================= -->
+        <Grid Grid.Row="8" Margin="0,15,0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                Name="TotalProducedText"
+                Text="Total: --"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#B5838D"/>
+
+            <TextBlock
+                Grid.Column="1"
+                Name="CurrentTrayText"
+                Text="Current Tray: ||"
+                HorizontalAlignment="Center"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#B5838D"/>
+        </Grid>
+
+        <!-- ================= ROW 9 ================= -->
+        <Grid Grid.Row="9">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                Name="YieldText"
+                Text="Yield: 0.00%"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#B5838D"/>
+
+            <TextBlock
+                Grid.Column="1"
+                Name="TrayProgressText"
+                Text="-- / --"
+                HorizontalAlignment="Center"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                Foreground="#6D6875"/>
+
+            <Button
+                Grid.Column="2"
+                Name="CloseButton"
+                Click="CloseButton_Click"
+                Content="CLOSE"
+                Width="120"
+                Height="35"
+                Background="#6D6875"
+                Foreground="#FFEFEB"
+                FontFamily="Consolas"
+                FontWeight="Bold"
+                BorderThickness="0"
+                HorizontalAlignment="Right"/>
+        </Grid>
 
     </Grid>
 </Window>
