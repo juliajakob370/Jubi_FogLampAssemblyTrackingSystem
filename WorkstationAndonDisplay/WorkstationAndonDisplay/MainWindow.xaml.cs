@@ -299,8 +299,9 @@ namespace WorkstationAndonDisplay
         private void UpdatePartDisplay(string partName, int currentCount, double percent, bool needsRefill)
         {
             percent = Math.Max(0, Math.Min(100, percent));
-
-            Brush statusBrush = needsRefill ? Brushes.Red : Brushes.LightGreen;
+            Brush StatusColorGreen = (Brush)new BrushConverter().ConvertFrom("#67e26d");
+            Brush StatusColorRed = (Brush)new BrushConverter().ConvertFrom("#D7362D");
+            Brush statusBrush = needsRefill ? StatusColorRed : StatusColorGreen;
 
             switch (partName)
             {
